@@ -1,0 +1,85 @@
+{
+  "row": {
+    "cnpj": "00068581000101",
+    "original": "00068581000101",
+    "position": 11,
+    "company": "{\"cnpj\": \"00068581000101\", \"legal_name\": \"AGROPECUARIA BOSCHETTI LTDA\", \"trade_name\": \"\", \"city\": \"Jabora\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+    "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"BAIXA\", \"score\": 40, \"evidence\": [\"Página acessível; menção de nome/CNPJ não comprova propriedade\", \"name_match\", \"heading_brand\"], \"accessible\": true, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation7:2c388c5fca8a\", \"site_type\": \"CORPORATE_PENDING\", \"signals\": {\"exact_cnpj\": false, \"name_match\": true, \"brand_domain\": false, \"heading_brand\": true, \"legal_owner\": false, \"corporate_navigation\": false, \"tenant_identity_confirmed\": false, \"tenant_evidence_paths\": [], \"review_candidate_url\": \"https://app.farmby.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda\", \"candidate_url\": \"https://app.farmby.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda\"}, \"inspected_urls\": [\"https://app.farmby.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda\", \"https://app.farmby.com.br/contato\"], \"page_evidence\": [{\"url\": \"https://app.farmby.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda\", \"content_sha256\": \"3e84783b6aa44bf1bab028b343766aceb0af0ea0cd34d423447fb05bb7b941aa\", \"title\": \"Agropecuaria Boschetti Ltda - Farmácias Veterinárias em Água Doce - FarmBy Agropecuaria Boschetti Ltda\", \"cnpjs\": [], \"exact_cnpj\": false, \"owner_context\": \"\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"owner_context_kind\": \"FOOTER\", \"reviewed_at_utc\": \"2026-11-04T14:08:19.364617+00:00\", \"redirect_chain\": []}, {\"url\": \"https://app.farmby.com.br/contato\", \"content_sha256\": \"22d0146b6ee7e78bd2fcae88be473fccd67ed072bc3f95f179e50db1ba16448d\", \"title\": \"Início - FarmBy - App de negócios Agro Fale Conosco\", \"cnpjs\": [], \"exact_cnpj\": false, \"owner_context\": \"\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"owner_context_kind\": \"FOOTER\", \"reviewed_at_utc\": \"2026-11-04T14:08:19.364753+00:00\", \"redirect_chain\": []}]}",
+    "candidates": "[\"https://m.yelp.com/biz/agropecu%C3%A1ria-boschetti-jabor%C3%A1\", \"https://www.jusbrasil.com.br/nome/agropecuaria-boschetti-ltda/cnpj-1mjVLx1kBZp\", \"https://www.solutudo.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda-7476639\", \"https://app.farmby.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda\", \"https://cnpj.biz/00068581000101\", \"https://www.econodata.com.br/empresas/sc-jabora/busca-agropecuaria\", \"https://www.cylex.com.br/jabora/agropecuaria-boschetti-ltda-me-11380973.html\", \"https://www.misterwhat.com.br/company/66684-agropecuaria-boschetti-ltda-jabora\", \"http://cnpj.info/Agropecuaria-Boschetti-Ltda-Jabora-SC\", \"https://www.telelistas.net/locais/sc/jabora/adubos+e+fertilizantes/bu-18498110/agropecuaria+boschetti+em+centro\"]",
+    "source": "PLANILHA_LOCAL;serper;website_publico",
+    "status": "PENDENTE_VALIDACAO_SITE_OFICIAL",
+    "confidence": "BAIXA",
+    "attempts": 1,
+    "error": "ROBOTS_INDISPONIVEL",
+    "updated_at": 1793801305.611108
+  },
+  "audit": {
+    "https://m.yelp.com/biz/agropecu%C3%A1ria-boschetti-jabor%C3%A1": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "BUSINESS_DIRECTORY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://www.jusbrasil.com.br/nome/agropecuaria-boschetti-ltda/cnpj-1mjVLx1kBZp": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "THIRD_PARTY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://www.solutudo.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda-7476639": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "BUSINESS_DIRECTORY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://cnpj.biz/00068581000101": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "BUSINESS_DIRECTORY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://www.econodata.com.br/empresas/sc-jabora/busca-agropecuaria": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "BUSINESS_DIRECTORY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "http://cnpj.info/Agropecuaria-Boschetti-Ltda-Jabora-SC": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "THIRD_PARTY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://www.telelistas.net/locais/sc/jabora/adubos+e+fertilizantes/bu-18498110/agropecuaria+boschetti+em+centro": {
+      "decision": "REJECTED",
+      "reason": "DOMINIO_TERCEIRO",
+      "source_kind": "THIRD_PARTY",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://app.farmby.com.br/empresas/sc/jabora/farmacias-veterinarias/agropecuaria-boschetti-ltda": {
+      "decision": "VALIDATED",
+      "confidence": "BAIXA",
+      "site_type": "CORPORATE_CANDIDATE",
+      "confirmed": false,
+      "priority": 0,
+      "source_kind": "UNVERIFIED_CANDIDATE",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://www.cylex.com.br/jabora/agropecuaria-boschetti-ltda-me-11380973.html": {
+      "decision": "ERROR",
+      "reason": "ROBOTS_INDISPONIVEL",
+      "details": {},
+      "source_kind": "UNVERIFIED_CANDIDATE",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    },
+    "https://www.misterwhat.com.br/company/66684-agropecuaria-boschetti-ltda-jabora": {
+      "decision": "VALIDATED",
+      "confidence": "BAIXA",
+      "site_type": "CORPORATE_CANDIDATE",
+      "confirmed": false,
+      "priority": 0,
+      "source_kind": "UNVERIFIED_CANDIDATE",
+      "rules_version": "official-sites-v2:validation7:2c388c5fca8a"
+    }
+  }
+}

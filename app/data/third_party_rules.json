@@ -1,0 +1,38 @@
+{
+  "version": "official-sites-v2",
+  "domains": [
+    "facebook.com", "instagram.com", "linkedin.com", "twitter.com", "x.com", "youtube.com", "tiktok.com", "whatsapp.com", "wa.me",
+    "google.com", "google.com.br", "bing.com", "econodata.com.br", "casadosdados.com.br", "cnpj.biz", "cnpj.ws", "cnpj.info",
+    "consultacnpj.com", "empresascnpj.com", "informecadastral.com.br", "empresometro.com.br", "solutudo.com.br", "telelistas.net",
+    "reclameaqui.com.br", "guiamais.com.br", "mercadolivre.com.br", "amazon.com.br", "shopee.com.br", "alibaba.com", "wikipedia.org",
+    "jusbrasil.com.br", "maplink.global", "linktr.ee", "bit.ly", "tinyurl.com", "opencnpj.com", "cnpjcheck.com.br", "cnpja.com",
+    "cnpjcadastro.com.br", "cnpjweb.com.br", "cnpjob.com.br", "datastone.com.br", "escavador.com", "radarbra.com.br", "tradexa.com.br",
+    "serasaexperian.com.br", "breela.com.br", "maiscnpj.com.br", "acharei.com.br", "toreva.com.br", "perfill.com.br", "infoville.com.br",
+    "advdinamico.com.br", "provik.com.br", "scribd.com", "empresasdobrasil.com", "srwatson.io", "inddex.com.br", "turbovenda.com.br",
+    "sneps.com.br", "empresaqui.com.br", "prospectavendas.com.br", "vopys.com.br", "acibblumenau.com.br", "acij.com.br", "unesc.net", "parafa.com.br",
+    "yelp.com", "yelp.com.br", "cnpjspot.com.br", "academia.edu", "moovitapp.com"
+  ],
+  "social_domains": ["facebook.com", "instagram.com", "linkedin.com", "twitter.com", "x.com", "youtube.com", "tiktok.com", "whatsapp.com", "wa.me"],
+  "directory_domains": ["yelp.com", "yelp.com.br", "cnpjspot.com.br", "parafa.com.br", "econodata.com.br", "casadosdados.com.br", "cnpj.biz", "cnpja.com", "opencnpj.com", "solutudo.com.br", "procep.com.br", "inddex.com.br", "farmby.com.br", "misterwhat.com.br", "cylex.com.br"],
+  "host_suffixes": [".gov.br", ".jus.br", ".leg.br", ".edu.br", ".edu.et"],
+  "url_patterns": [
+    "(?:^|/)empresas/[a-z]{2}/[^/?#]+/[^/?#]+/[^/?#]+",
+    "(?:^|/)(?:company|perfil-de-empresa)/[0-9]+[-/]",
+    "(?:^|/)(?:act|cct|acordos?-coletivos?|convencoes-coletivas)(?:/|$)",
+    "(?:^|/)(?:bitstreams?|municipais|mzfilemanager|library)(?:/|$)",
+    "(?:^|/)(?:guia-comercial|guia-de-empresas|business-directory|categorias?|single-tag)(?:/|$)",
+    "(?:^|/)(?:consulta[-_]?cnpj|consulta-gratis|detalhes-de-empresas|lista-de-empresas|socios|associados?)(?:/|$)",
+    "(?:^|/)(?:cnpj|office|consulta/empresa|empresa|empresas)(?:/[^/?#]*)*[0-9]{14}",
+    "[?&]cnpj=[0-9]",
+    "\\.(?:pdf|docx?|xlsx?|pptx?)(?:$|[?#])"
+  ],
+  "directory_heading_patterns": [
+    "(?:acordo|convencao) coletiv[oa]",
+    "(?:^| )empresas em .+ (?:ac|al|am|ap|ba|ce|df|es|go|ma|mg|ms|mt|pa|pb|pe|pi|pr|rj|rn|ro|rr|rs|sc|se|sp|to)(?: |$)",
+    "consult[ae]r?(?: de)? cnpj", "consulta cadastral", "diretorio de empresas", "guia de empresas", "buscar empresas", "dados cadastrais da empresa"
+  ],
+  "directory_content_patterns": [
+    "consulta(?:r)? (?:de )?cnpj", "dados (?:publicos )?da receita federal", "outras empresas", "lista de empresas",
+    "milhares de empresas", "base de empresas", "dados cadastrais", "quadro societario", "consultar socios", "empresas cadastradas"
+  ]
+}

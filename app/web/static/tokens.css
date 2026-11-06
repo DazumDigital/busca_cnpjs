@@ -1,0 +1,23 @@
+/* Fonte principal: Design System oficial fornecido em 06/11/2026. */
+@font-face{font-family:Poppins;src:url('./fonts/Poppins-Light.ttf') format('truetype');font-style:normal;font-weight:300;font-display:swap}
+@font-face{font-family:Poppins;src:url('./fonts/Poppins-Regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:Poppins;src:url('./fonts/Poppins-Medium.ttf') format('truetype');font-style:normal;font-weight:500;font-display:swap}
+@font-face{font-family:Poppins;src:url('./fonts/Poppins-SemiBold.ttf') format('truetype');font-style:normal;font-weight:600;font-display:swap}
+@font-face{font-family:Poppins;src:url('./fonts/Poppins-Bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:swap}
+:root{
+  --navy:#0a1d3f;--navy-link:#062a68;--orange:#ff5a1f;
+  --bone:#f4f4f2;--bone-deep:#efefeb;--white:#ffffff;
+  --ink:#17110e;--body:#191919;--muted:#5f6368;--faint:#9a9a94;
+  --line:#e4e4e0;--line-dash:#c9c9c4;
+  /* Institucionais: preservados e distintos dos tokens da interface. */
+  --official-orange:#fe6b35;--official-navy:#002365;
+  --success:#1f7a4f;--success-soft:#f0f7f2;--success-line:#bdd8c8;
+  --warning:#80571c;--warning-soft:#fff8ed;--warning-line:#e7cfaa;--danger:#b42318;
+  --font:Poppins,ui-sans-serif,system-ui,sans-serif;
+  --container:1320px;--gutter:20px;--radius:20px;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --shadow-card:0 18px 40px -18px rgba(10,29,63,.28);
+  --shadow-block:0 40px 90px -40px rgba(10,29,63,.25);
+}
+@media(min-width:640px){:root{--gutter:32px}}
+@media(min-width:1024px){:root{--gutter:44px}}

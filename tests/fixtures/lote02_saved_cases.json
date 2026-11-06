@@ -1,0 +1,395 @@
+{
+  "cases": [
+    {
+      "cnpj": "00065589000106",
+      "original": "00065589000106",
+      "position": 11,
+      "company": "{\"cnpj\": \"00065589000106\", \"legal_name\": \"DAIJU COMERCIO DE MOVEIS E COLCHOES LTDA\", \"trade_name\": \"\", \"city\": \"Palhoca\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"MEDIA\", \"score\": 95, \"evidence\": [\"Página acessível; menção de nome/CNPJ não comprova propriedade\", \"exact_cnpj\", \"name_match\", \"heading_brand\", \"legal_owner\", \"corporate_navigation\", \"REVISÃO MANUAL: candidato plausível sem confirmação suficiente do CNPJ/titularidade\"], \"accessible\": true, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation6:e9cd84451e72\", \"site_type\": \"CORPORATE_PENDING\", \"signals\": {\"exact_cnpj\": true, \"name_match\": true, \"brand_domain\": false, \"heading_brand\": true, \"legal_owner\": true, \"corporate_navigation\": true, \"review_candidate_url\": \"https://daijucomercio.lojavirtualnuvem.com.br/\", \"candidate_url\": \"https://daijucomercio.lojavirtualnuvem.com.br/\"}, \"inspected_urls\": [\"https://daijucomercio.lojavirtualnuvem.com.br/\", \"https://daijucomercio.lojavirtualnuvem.com.br/politica-de-privacidade/\", \"https://daijucomercio.lojavirtualnuvem.com.br/contato/\"], \"page_evidence\": [{\"url\": \"https://daijucomercio.lojavirtualnuvem.com.br/\", \"content_sha256\": \"4d30e2129895de45420632fa70b1e90390d7516611d8ff7d549850a1d1c46c6b\", \"title\": \"Loja online de Daiju Comercio Daiju Comercio\", \"cnpjs\": [\"00065589000106\"], \"exact_cnpj\": true, \"owner_context\": \"\\n\\t \\n\\t\\t \\n\\t\\t\\t\\n\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\n\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t Departamentos \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\t\\t\\t \\n\\t         Início \\n\\t\\t \\n\\t\\t\\t \\n\\t         Produtos \\n\\t\\t \\n\\t\\t\\t \\n\\t         Contato \\n\\t\\t \\n\\t\\t\\t \\n\\t         Política de Privacidade \\n\\t\\t \\n\\t\\t\\t \\n\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-04T13:33:11.061101+00:00\", \"redirect_chain\": []}, {\"url\": \"https://daijucomercio.lojavirtualnuvem.com.br/politica-de-privacidade/\", \"content_sha256\": \"1fa703547ec36b51e13b26ece50e03cb0e5583fcde1c664bd87e57f2ff0a5a20\", \"title\": \"Daiju Comercio - Política de Privacidade Política de Privacidade\", \"cnpjs\": [\"00065589000106\"], \"exact_cnpj\": true, \"owner_context\": \"                         \\n                                                                     \\n            \\n\\n \\n\\t \\n\\t\\t \\n\\t\\t\\t\\n\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\n\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t Departamentos \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\t\\t\\t \\n\\t         Início \\n\\t\\t \\n\\t\\t\\t \\n\\t         Produtos \\n\\t\\t \\n\\t\\t\\t \\n\\t         Contato \\n\\t\\t \\n\\t\\t\\t \\n\\t         Política de Privacidade \\n\\t\\t \\n\\t\\t\\t \\n\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-04T13:33:11.062790+00:00\", \"redirect_chain\": []}, {\"url\": \"https://daijucomercio.lojavirtualnuvem.com.br/contato/\", \"content_sha256\": \"17c6fbe7f8456348b3afa5005ba75b62aa35d51f7a4458281911325fcaaf34a8\", \"title\": \"Contato - Daiju Comercio Contato\", \"cnpjs\": [\"00065589000106\"], \"exact_cnpj\": true, \"owner_context\": \"\\n\\t \\n\\t\\t \\n\\t\\t\\t\\n\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\n\\t\\t\\t\\t\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t Departamentos \\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t \\n\\t\\t\\t \\n\\t         Início \\n\\t\\t \\n\\t\\t\\t \\n\\t         Produtos \\n\\t\\t \\n\\t\\t\\t \\n\\t         Contato \\n\\t\\t \\n\\t\\t\\t \\n\\t         Política de Privacidade \\n\\t\\t \\n\\t\\t\\t \\n\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-04T13:33:11.063512+00:00\", \"redirect_chain\": []}]}",
+      "candidates": "[\"https://www.jusbrasil.com.br/topicos/120656349/daiju-comercio-de-moveis-e-colchoes-ltda-me\", \"https://daijucomercio.lojavirtualnuvem.com.br/\", \"https://www.econodata.com.br/consulta-empresa/00065589000106-daiju-comercio-de-moveis-e-colchoes-ltda\", \"https://cnpj.biz/00065589000106\", \"https://advdinamico.com.br/socios/jamile-fernandes-da-silveira-6afc4ff4\", \"https://www.jusbrasil.com.br/nome/daiju-comercio-de-moveis-e-colchoes-ltda/cnpj-MnKtby1eNDh\", \"https://santacatarina.guiaja.net/pt/empresas/sc/palhoca/moveis/daiju-comercio-de-moveis-e-colchoes-ltda-me-matriz_5399179+6.html\", \"http://cnpj.info/Daiju-Comercio-de-Moveis-e-Colchoes-Eireli\", \"https://www.jusbrasil.com.br/processos/926164963/peca-peticao-inicial-trt12-acao-reclamatoria-trabalhista-atsum-contra-daiju-comercio-de-moveis-e-colchoes-5761691812\", \"https://daijucomercio.lojavirtualnuvem.com.br/produtos/esteira-ergometrica-kikos-e500i/\"]",
+      "source": "PLANILHA_LOCAL;serper;website_publico",
+      "status": "PENDENTE_VALIDACAO_SITE_OFICIAL",
+      "confidence": "MEDIA",
+      "attempts": 1,
+      "error": "SITE_INACESSIVEL",
+      "updated_at": 1793799250.6399767
+    },
+    {
+      "cnpj": "00065768000143",
+      "original": "00065768000143",
+      "position": 12,
+      "company": "{\"cnpj\": \"00065768000143\", \"legal_name\": \"MODESC INDUSTRIA E COMERCIO DE MOVEIS LTDA\", \"trade_name\": \"\", \"city\": \"Chapeco\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"MEDIA\", \"score\": 65, \"evidence\": [\"Página acessível; menção de nome/CNPJ não comprova propriedade\", \"exact_cnpj\", \"name_match\", \"heading_brand\", \"REVISÃO MANUAL: candidato plausível sem confirmação suficiente do CNPJ/titularidade\"], \"accessible\": true, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation6:e9cd84451e72\", \"site_type\": \"CORPORATE_PENDING\", \"signals\": {\"exact_cnpj\": true, \"name_match\": true, \"brand_domain\": false, \"heading_brand\": true, \"legal_owner\": false, \"corporate_navigation\": false, \"review_candidate_url\": \"https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026\", \"candidate_url\": \"https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026\"}, \"inspected_urls\": [\"https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026\"], \"page_evidence\": [{\"url\": \"https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026\", \"content_sha256\": \"78cc607f220f1a855ebe345c90a796bcf94e4811e95083b496e1d3191fd7fbf6\", \"title\": \"Acordo Coletivo 2026 · SITICOM - Chapecó (SC) · BOND Convenções ACT 2026 · SITICOM - Chapecó ↔ E MODESC INDUSTRIA E COMERCIO DE MOVEIS LTDA\", \"cnpjs\": [\"00065768000143\", \"83312231000168\"], \"exact_cnpj\": true, \"owner_context\": \"\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-04T13:34:55.686975+00:00\", \"redirect_chain\": []}]}",
+      "candidates": "[\"https://www.instagram.com/modescmodd/\", \"https://www.linkedin.com/company/modesc-ind-e-com-de-moveis-ltda\", \"https://www.facebook.com/p/Modesc-Modd-100010003151052/\", \"https://moovitapp.com/index/pt-br/transporte_p%C3%BAblico-Modesc_Industria_E_Comercio_De_Moveis-Chapeco-site_357501859-3162\", \"https://br.linkedin.com/company/modesc-ind-e-com-de-moveis-ltda\", \"https://cnpj.biz/00065768000143\", \"https://www.empresaqui.com.br/detalhes-de-empresas/00065768000143-MODESC-INDUSTRIA-E-COMERCIO-DE-MOVEIS-LTDA\", \"https://www.jusbrasil.com.br/processos/nome/30595017/modesc-industria-e-comercio-de-moveis-ltda-epp\", \"https://www.solutudo.com.br/empresas/sc/chapeco/moveis-planejados-marcenarias/modesc-industria-e-comercio-de-moveis-ltda-11001401\", \"https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026\"]",
+      "source": "PLANILHA_LOCAL;serper;website_publico",
+      "status": "PENDENTE_VALIDACAO_SITE_OFICIAL",
+      "confidence": "MEDIA",
+      "attempts": 1,
+      "error": "ROBOTS_INDISPONIVEL",
+      "updated_at": 1793799295.692156
+    },
+    {
+      "cnpj": "00066424000159",
+      "original": "00066424000159",
+      "position": 13,
+      "company": "{\"cnpj\": \"00066424000159\", \"legal_name\": \"FARMACOMED SERVICOS LTDA\", \"trade_name\": \"\", \"city\": \"Florianopolis\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"NAO_ENCONTRADO\", \"score\": 0, \"evidence\": [\"SEM_SITE_OFICIAL_CONFIRMADO\", \"https://www.econodata.com.br/consulta-empresa/00066424000159-farmacomed-servicos-ltda: DOMINIO_TERCEIRO\", \"https://cnpj.biz/00066424000159: DOMINIO_TERCEIRO\", \"https://www.escavador.com/sobre/3306552/marcello-avila-mascarenhas: DOMINIO_TERCEIRO\"], \"accessible\": false, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation6:e9cd84451e72\", \"site_type\": \"THIRD_PARTY_ONLY\", \"signals\": {}, \"inspected_urls\": [], \"page_evidence\": []}",
+      "candidates": "[\"https://www.econodata.com.br/consulta-empresa/00066424000159-farmacomed-servicos-ltda\", \"https://cnpj.biz/00066424000159\", \"https://www.escavador.com/sobre/3306552/marcello-avila-mascarenhas\"]",
+      "source": "PLANILHA_LOCAL;serper",
+      "status": "SEM_SITE_OFICIAL_CONFIRMADO",
+      "confidence": "NAO_ENCONTRADO",
+      "attempts": 1,
+      "error": "",
+      "updated_at": 1793799312.1543005
+    }
+  ],
+  "audits": {
+    "00065589000106": {
+      "https://www.jusbrasil.com.br/topicos/120656349/daiju-comercio-de-moveis-e-colchoes-ltda-me": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.econodata.com.br/consulta-empresa/00065589000106-daiju-comercio-de-moveis-e-colchoes-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "BUSINESS_DIRECTORY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://cnpj.biz/00065589000106": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "BUSINESS_DIRECTORY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://advdinamico.com.br/socios/jamile-fernandes-da-silveira-6afc4ff4": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.jusbrasil.com.br/nome/daiju-comercio-de-moveis-e-colchoes-ltda/cnpj-MnKtby1eNDh": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "http://cnpj.info/Daiju-Comercio-de-Moveis-e-Colchoes-Eireli": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.jusbrasil.com.br/processos/926164963/peca-peticao-inicial-trt12-acao-reclamatoria-trabalhista-atsum-contra-daiju-comercio-de-moveis-e-colchoes-5761691812": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://daijucomercio.lojavirtualnuvem.com.br/": {
+        "decision": "VALIDATED",
+        "confidence": "MEDIA",
+        "site_type": "CORPORATE_CANDIDATE",
+        "confirmed": false,
+        "priority": 20,
+        "source_kind": "UNVERIFIED_CANDIDATE",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://santacatarina.guiaja.net/pt/empresas/sc/palhoca/moveis/daiju-comercio-de-moveis-e-colchoes-ltda-me-matriz_5399179+6.html": {
+        "decision": "ERROR",
+        "reason": "SITE_INACESSIVEL",
+        "details": {},
+        "source_kind": "UNVERIFIED_CANDIDATE",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://daijucomercio.lojavirtualnuvem.com.br/produtos/esteira-ergometrica-kikos-e500i/": {
+        "decision": "VALIDATED",
+        "confidence": "MEDIA",
+        "site_type": "CORPORATE_CANDIDATE",
+        "confirmed": false,
+        "priority": 0,
+        "source_kind": "UNVERIFIED_CANDIDATE",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      }
+    },
+    "00065768000143": {
+      "https://www.instagram.com/modescmodd/": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "SOCIAL_NETWORK",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.linkedin.com/company/modesc-ind-e-com-de-moveis-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "SOCIAL_NETWORK",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.facebook.com/p/Modesc-Modd-100010003151052/": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "SOCIAL_NETWORK",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://br.linkedin.com/company/modesc-ind-e-com-de-moveis-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "SOCIAL_NETWORK",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://cnpj.biz/00065768000143": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "BUSINESS_DIRECTORY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.empresaqui.com.br/detalhes-de-empresas/00065768000143-MODESC-INDUSTRIA-E-COMERCIO-DE-MOVEIS-LTDA": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.jusbrasil.com.br/processos/nome/30595017/modesc-industria-e-comercio-de-moveis-ltda-epp": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.solutudo.com.br/empresas/sc/chapeco/moveis-planejados-marcenarias/modesc-industria-e-comercio-de-moveis-ltda-11001401": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "BUSINESS_DIRECTORY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://moovitapp.com/index/pt-br/transporte_p%C3%BAblico-Modesc_Industria_E_Comercio_De_Moveis-Chapeco-site_357501859-3162": {
+        "decision": "ERROR",
+        "reason": "ROBOTS_INDISPONIVEL",
+        "details": {},
+        "source_kind": "UNVERIFIED_CANDIDATE",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026": {
+        "decision": "VALIDATED",
+        "confidence": "MEDIA",
+        "site_type": "CORPORATE_CANDIDATE",
+        "confirmed": false,
+        "priority": 0,
+        "source_kind": "UNVERIFIED_CANDIDATE",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      }
+    },
+    "00066424000159": {
+      "https://www.econodata.com.br/consulta-empresa/00066424000159-farmacomed-servicos-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "BUSINESS_DIRECTORY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://cnpj.biz/00066424000159": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "BUSINESS_DIRECTORY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      },
+      "https://www.escavador.com/sobre/3306552/marcello-avila-mascarenhas": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "source_kind": "THIRD_PARTY",
+        "rules_version": "official-sites-v2:validation6:e9cd84451e72"
+      }
+    }
+  },
+  "validations": [
+    {
+      "website": "https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026",
+      "domain": "convencoes.bond.com.br",
+      "confidence": "MEDIA",
+      "score": 65,
+      "evidence": [
+        "Página acessível; menção de nome/CNPJ não comprova propriedade",
+        "exact_cnpj",
+        "name_match",
+        "heading_brand",
+        "REVISÃO MANUAL: candidato plausível sem confirmação suficiente do CNPJ/titularidade"
+      ],
+      "accessible": true,
+      "confirmed": false,
+      "rules_version": "official-sites-v2:validation6:e9cd84451e72",
+      "site_type": "CORPORATE_CANDIDATE",
+      "signals": {
+        "exact_cnpj": true,
+        "name_match": true,
+        "brand_domain": false,
+        "heading_brand": true,
+        "legal_owner": false,
+        "corporate_navigation": false
+      },
+      "inspected_urls": [
+        "https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026"
+      ],
+      "page_evidence": [
+        {
+          "url": "https://convencoes.bond.com.br/act/modesc-industria-comercio-moveis-br-act-2026",
+          "content_sha256": "78cc607f220f1a855ebe345c90a796bcf94e4811e95083b496e1d3191fd7fbf6",
+          "title": "Acordo Coletivo 2026 · SITICOM - Chapecó (SC) · BOND Convenções ACT 2026 · SITICOM - Chapecó ↔ E MODESC INDUSTRIA E COMERCIO DE MOVEIS LTDA",
+          "cnpjs": [
+            "00065768000143",
+            "83312231000168"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:34:55.686975+00:00",
+          "redirect_chain": []
+        }
+      ]
+    },
+    {
+      "website": "https://daijucomercio.lojavirtualnuvem.com.br/produtos/esteira-ergometrica-kikos-e500i/",
+      "domain": "daijucomercio.lojavirtualnuvem.com.br",
+      "confidence": "MEDIA",
+      "score": 95,
+      "evidence": [
+        "Página acessível; menção de nome/CNPJ não comprova propriedade",
+        "exact_cnpj",
+        "name_match",
+        "heading_brand",
+        "legal_owner",
+        "corporate_navigation",
+        "REVISÃO MANUAL: candidato plausível sem confirmação suficiente do CNPJ/titularidade"
+      ],
+      "accessible": true,
+      "confirmed": false,
+      "rules_version": "official-sites-v2:validation6:e9cd84451e72",
+      "site_type": "CORPORATE_CANDIDATE",
+      "signals": {
+        "exact_cnpj": true,
+        "name_match": true,
+        "brand_domain": false,
+        "heading_brand": true,
+        "legal_owner": true,
+        "corporate_navigation": true
+      },
+      "inspected_urls": [
+        "https://daijucomercio.lojavirtualnuvem.com.br/produtos/esteira-ergometrica-kikos-e500i/",
+        "https://daijucomercio.lojavirtualnuvem.com.br/politica-de-privacidade/",
+        "https://daijucomercio.lojavirtualnuvem.com.br/contato/"
+      ],
+      "page_evidence": [
+        {
+          "url": "https://daijucomercio.lojavirtualnuvem.com.br/produtos/esteira-ergometrica-kikos-e500i/",
+          "content_sha256": "4bdfbd3a1ec1a718701a81e5814d03d0f7b91717ed3674390bbfa96519c9a3f8",
+          "title": "Esteira Ergométrica Kikos E500i - Daiju Comercio Esteira Ergométrica Kikos E500i",
+          "cnpjs": [
+            "00065589000106"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "\n\t \n\t\t \n\t\t\t\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Departamentos \n\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t \n\t         Início \n\t\t \n\t\t\t \n\t         Produtos \n\t\t \n\t\t\t \n\t         Contato \n\t\t \n\t\t\t \n\t         Política de Privacidade \n\t\t \n\t\t\t \n",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:34:10.634467+00:00",
+          "redirect_chain": []
+        },
+        {
+          "url": "https://daijucomercio.lojavirtualnuvem.com.br/politica-de-privacidade/",
+          "content_sha256": "1fa703547ec36b51e13b26ece50e03cb0e5583fcde1c664bd87e57f2ff0a5a20",
+          "title": "Daiju Comercio - Política de Privacidade Política de Privacidade",
+          "cnpjs": [
+            "00065589000106"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "                         \n                                                                     \n            \n\n \n\t \n\t\t \n\t\t\t\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Departamentos \n\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t \n\t         Início \n\t\t \n\t\t\t \n\t         Produtos \n\t\t \n\t\t\t \n\t         Contato \n\t\t \n\t\t\t \n\t         Política de Privacidade \n\t\t \n\t\t\t \n",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:34:10.635275+00:00",
+          "redirect_chain": []
+        },
+        {
+          "url": "https://daijucomercio.lojavirtualnuvem.com.br/contato/",
+          "content_sha256": "17c6fbe7f8456348b3afa5005ba75b62aa35d51f7a4458281911325fcaaf34a8",
+          "title": "Contato - Daiju Comercio Contato",
+          "cnpjs": [
+            "00065589000106"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "\n\t \n\t\t \n\t\t\t\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Departamentos \n\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t \n\t         Início \n\t\t \n\t\t\t \n\t         Produtos \n\t\t \n\t\t\t \n\t         Contato \n\t\t \n\t\t\t \n\t         Política de Privacidade \n\t\t \n\t\t\t \n",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:34:10.635586+00:00",
+          "redirect_chain": []
+        }
+      ]
+    },
+    {
+      "website": "https://daijucomercio.lojavirtualnuvem.com.br/",
+      "domain": "daijucomercio.lojavirtualnuvem.com.br",
+      "confidence": "MEDIA",
+      "score": 95,
+      "evidence": [
+        "Página acessível; menção de nome/CNPJ não comprova propriedade",
+        "exact_cnpj",
+        "name_match",
+        "heading_brand",
+        "legal_owner",
+        "corporate_navigation",
+        "REVISÃO MANUAL: candidato plausível sem confirmação suficiente do CNPJ/titularidade"
+      ],
+      "accessible": true,
+      "confirmed": false,
+      "rules_version": "official-sites-v2:validation6:e9cd84451e72",
+      "site_type": "CORPORATE_CANDIDATE",
+      "signals": {
+        "exact_cnpj": true,
+        "name_match": true,
+        "brand_domain": false,
+        "heading_brand": true,
+        "legal_owner": true,
+        "corporate_navigation": true
+      },
+      "inspected_urls": [
+        "https://daijucomercio.lojavirtualnuvem.com.br/",
+        "https://daijucomercio.lojavirtualnuvem.com.br/politica-de-privacidade/",
+        "https://daijucomercio.lojavirtualnuvem.com.br/contato/"
+      ],
+      "page_evidence": [
+        {
+          "url": "https://daijucomercio.lojavirtualnuvem.com.br/",
+          "content_sha256": "4d30e2129895de45420632fa70b1e90390d7516611d8ff7d549850a1d1c46c6b",
+          "title": "Loja online de Daiju Comercio Daiju Comercio",
+          "cnpjs": [
+            "00065589000106"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "\n\t \n\t\t \n\t\t\t\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Departamentos \n\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t \n\t         Início \n\t\t \n\t\t\t \n\t         Produtos \n\t\t \n\t\t\t \n\t         Contato \n\t\t \n\t\t\t \n\t         Política de Privacidade \n\t\t \n\t\t\t \n",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:33:11.061101+00:00",
+          "redirect_chain": []
+        },
+        {
+          "url": "https://daijucomercio.lojavirtualnuvem.com.br/politica-de-privacidade/",
+          "content_sha256": "1fa703547ec36b51e13b26ece50e03cb0e5583fcde1c664bd87e57f2ff0a5a20",
+          "title": "Daiju Comercio - Política de Privacidade Política de Privacidade",
+          "cnpjs": [
+            "00065589000106"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "                         \n                                                                     \n            \n\n \n\t \n\t\t \n\t\t\t\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Departamentos \n\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t \n\t         Início \n\t\t \n\t\t\t \n\t         Produtos \n\t\t \n\t\t\t \n\t         Contato \n\t\t \n\t\t\t \n\t         Política de Privacidade \n\t\t \n\t\t\t \n",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:33:11.062790+00:00",
+          "redirect_chain": []
+        },
+        {
+          "url": "https://daijucomercio.lojavirtualnuvem.com.br/contato/",
+          "content_sha256": "17c6fbe7f8456348b3afa5005ba75b62aa35d51f7a4458281911325fcaaf34a8",
+          "title": "Contato - Daiju Comercio Contato",
+          "cnpjs": [
+            "00065589000106"
+          ],
+          "exact_cnpj": true,
+          "owner_context": "\n\t \n\t\t \n\t\t\t\n\t\t\t\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Razão Social: Daiju Comercio de Moveis e Colchoes LTDA   CNPJ: 00.065.589/0001-06   \n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\n\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t\t\t\t Departamentos \n\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t \n\t         Início \n\t\t \n\t\t\t \n\t         Produtos \n\t\t \n\t\t\t \n\t         Contato \n\t\t \n\t\t\t \n\t         Política de Privacidade \n\t\t \n\t\t\t \n",
+          "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+          "reviewed_at_utc": "2026-11-04T13:33:11.063512+00:00",
+          "redirect_chain": []
+        }
+      ]
+    }
+  ]
+}

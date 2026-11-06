@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dazum-cnpj-enrichment"
+version = "0.1.0"
+description = "POC local, auditável e com orçamento adicional zero"
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28,<0.29", "openpyxl>=3.1.5,<4", "python-dotenv>=1.1,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<10"]
+webtest = ["httpx2==2.16.0"]
+web = ["fastapi==0.162.0", "uvicorn==0.54.0", "SQLAlchemy==2.0.57", "psycopg[binary]==3.3.8"]
+
+[project.scripts]
+cnpj-enrichment = "app.main:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["data/*.json"]
+"app.web" = ["static/*", "static/logos/*", "static/fonts/*"]
+
+[tool.vercel]
+entrypoint = "app.web.api:app"
+
+[tool.vercel.scripts]
+build = "python -m app.web.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]

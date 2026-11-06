@@ -1,0 +1,8 @@
+# Runtime Linux/Windows. O motor CLI continua instalável com pyproject.toml.
+httpx==0.28.1
+openpyxl==3.1.5
+python-dotenv==1.2.4
+fastapi==0.162.0
+uvicorn==0.54.0
+SQLAlchemy==2.0.57
+psycopg[binary]==3.3.8

@@ -1,0 +1,38 @@
+{
+  "brasilapi": {
+    "verified": false,
+    "reviewed_on": "",
+    "expires_on": "",
+    "free_only": false,
+    "no_card": false,
+    "no_auto_charge": false,
+    "no_paid_credits": false,
+    "storage_permitted": false,
+    "batch_permitted": false,
+    "evidence": "BrasilAPI desabilitada. Autorizacao de uso em lote pendente.",
+    "max_requests": 0,
+    "per_minute": 1,
+    "per_hour": 10,
+    "per_day": 10,
+    "confirmed_free_remaining": null,
+    "balance_verified_at": ""
+  },
+  "serper": {
+    "verified": true,
+    "reviewed_on": "2026-11-03",
+    "expires_on": "2026-11-04",
+    "free_only": true,
+    "no_card": true,
+    "no_auto_charge": true,
+    "no_paid_credits": true,
+    "storage_permitted": true,
+    "batch_permitted": true,
+    "evidence": "Avaliacao para piloto de 10 empresas. Dashboard: 2500 creditos gratuitos. Billing sem cartao, pagamentos ou recarga automatica. Termos B2B: https://serper.dev/terms. Uso automatizado dentro das cotas e armazenamento minimo de dominios e evidencias, sem replicar conteudo integral de terceiros. Nao representa autorizacao para processamento de 125 mil empresas.",
+    "max_requests": 20,
+    "per_minute": 2,
+    "per_hour": 20,
+    "per_day": 20,
+    "confirmed_free_remaining": 2500,
+    "balance_verified_at": "2026-11-03T11:06:48-03:00"
+  }
+}

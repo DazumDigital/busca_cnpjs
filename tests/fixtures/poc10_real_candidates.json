@@ -1,0 +1,357 @@
+{
+  "provenance": "Candidatos e classificações reais existentes em data/poc.sqlite; nenhum HTML foi salvo. expected_corporate_domain da THP é referência do usuário, não nova consulta.",
+  "companies": [
+    {
+      "company": {
+        "cnpj": "00055600000157",
+        "legal_name": "COMERCIAL GUATAMBU LTDA",
+        "trade_name": "",
+        "city": "Guatambu",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://cnpjcheck.com.br/empresa/comercial-guatambu-ltda-00055600000157",
+        "domain": "cnpjcheck.com.br",
+        "confidence": "ALTA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)"
+        ],
+        "accessible": true,
+        "confirmed": true
+      },
+      "previous_confidence": "ALTA",
+      "candidates": [
+        "https://www.datastone.com.br/consulta/empresa/00055600000157-comercial-guatambu",
+        "https://cnpjcheck.com.br/empresa/comercial-guatambu-ltda-00055600000157",
+        "https://www.escavador.com/nomes/comercial-guatambu-ltda-a0df0179fb",
+        "https://cnpja.com/office/00055600000157",
+        "https://radarbra.com.br/empresa/00055600000157-comercial-guatambu-ltda",
+        "https://cnpj.tradexa.com.br/35526485000136"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00055627000140",
+        "legal_name": "THP COMERCIO E REPRESENTACOES LTDA",
+        "trade_name": "",
+        "city": "Blumenau",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://opencnpj.com/00055627000140",
+        "domain": "opencnpj.com",
+        "confidence": "ALTA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)"
+        ],
+        "accessible": true,
+        "confirmed": true
+      },
+      "previous_confidence": "ALTA",
+      "candidates": [
+        "https://thpbrasil.com.br/sobre/",
+        "https://opencnpj.com/00055627000140",
+        "https://www.acibblumenau.com.br/associado/thp/",
+        "https://cnpja.com/en/office/00055627000140",
+        "https://thpbrasil.com.br/contato/",
+        "https://www.vopys.com.br/empresa/sc/blumenau/itoupava-central/representante-comercial-maquinas/thp-comercio-e-representacoes-ltda/22197607"
+      ],
+      "expected_corporate_domain": "thpbrasil.com.br"
+    },
+    {
+      "company": {
+        "cnpj": "00056328000120",
+        "legal_name": "GRAFICA E EDITORA SOUZA LTDA",
+        "trade_name": "",
+        "city": "Criciuma",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://empresas.serasaexperian.com.br/consulta-gratis/GRAFICA-E-EDITORA-SOUZA-LTDA-00056328000120",
+        "domain": "empresas.serasaexperian.com.br",
+        "confidence": "BAIXA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)",
+          "Indício de agregador: confirmação automática bloqueada"
+        ],
+        "accessible": true,
+        "confirmed": false
+      },
+      "previous_confidence": "BAIXA",
+      "candidates": [
+        "https://empresas.serasaexperian.com.br/consulta-gratis/GRAFICA-E-EDITORA-SOUZA-LTDA-00056328000120",
+        "https://breela.com.br/cnpj/00056328000120-grafica-e-editora-souza-ltda",
+        "https://opencnpj.com/00056328000120",
+        "https://cnpja.com/office/00056328000120",
+        "https://maiscnpj.com.br/cnpj/00056328000120-grafica-e-editora-souza-ltda",
+        "https://acharei.com.br/poi/grafica_e_editora_souza_ltda-3225509.html",
+        "https://toreva.com.br/consulta-cnpj/30047035000147-dk-digital-art-grafica-e-comunicacao-visual-ltda",
+        "https://www.unesc.net/portal/resources/files/689/LISTA%20EMPRESAS%20CONVENIADAS%20UNESC%20(1).pdf"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00056678000196",
+        "legal_name": "SOFTDATA SOLUCOES LTDA",
+        "trade_name": "",
+        "city": "Joinville",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://opencnpj.com/00056678000196",
+        "domain": "opencnpj.com",
+        "confidence": "ALTA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)"
+        ],
+        "accessible": true,
+        "confirmed": true
+      },
+      "previous_confidence": "ALTA",
+      "candidates": [
+        "https://www.acij.com.br/associados/softdata-solucoes-ltda/",
+        "https://cnpja.com/office/00056678000196",
+        "https://opencnpj.com/00056678000196",
+        "https://www.perfill.com.br/empresa/00056678000196",
+        "https://www.infoville.com.br/cnpj/00056678000196",
+        "https://toreva.com.br/consulta-cnpj/00056678000196-softdata-solucoes-ltda"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00058645000185",
+        "legal_name": "LANCHONETE SICHA & GUICA LTDA",
+        "trade_name": "",
+        "city": "Itajai",
+        "state": "",
+        "registration_status": "INAPTA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://cnpjcadastro.com.br/empresa/lanchonete-sicha-guica-ltda-00058645000266",
+        "domain": "cnpjcadastro.com.br",
+        "confidence": "BAIXA",
+        "score": 30,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "Nome empresarial no conteúdo (+20)"
+        ],
+        "accessible": true,
+        "confirmed": false
+      },
+      "previous_confidence": "BAIXA",
+      "candidates": [
+        "https://cnpjcadastro.com.br/empresa/lanchonete-sicha-guica-ltda-00058645000266",
+        "https://www.datastone.com.br/consulta/empresa/65089713000119-65-089-713-izabela-cristina-da-silva-rocha",
+        "https://www.escavador.com/diarios/5530512/TRT-12/J/2022-06-20?page=3122",
+        "https://www.infoville.com.br/cnpj/00097015000110",
+        "https://advdinamico.com.br/socios/ruth-bihr-94b1b99d",
+        "https://portal.trt12.jus.br/sites/default/files/2025-09/Rela%C3%A7%C3%A3o%20de%20Processos_002_2025%202%C2%AA%20Balne%C3%A1rio%20Cambori%C3%BA.pdf",
+        "https://www.infoville.com.br/cnpj/60423367000140",
+        "https://guia.provik.com.br/enderecos/sc/rio-das-antas/logradouro_rua+hercilio+luz.html",
+        "https://pt.scribd.com/doc/263301485/2015-01-15-6d9c547cf1"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00058650000198",
+        "legal_name": "MAIBERTI IND E COM DE CONFECCOES LTDA",
+        "trade_name": "",
+        "city": "Luiz Alves",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://empresas.serasaexperian.com.br/consulta-gratis/MAIBERTI-IND-E-COM-DE-CONFECCOES-LTDA-ME-00058650000198",
+        "domain": "empresas.serasaexperian.com.br",
+        "confidence": "BAIXA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)",
+          "Indício de agregador: confirmação automática bloqueada"
+        ],
+        "accessible": true,
+        "confirmed": false
+      },
+      "previous_confidence": "BAIXA",
+      "candidates": [
+        "https://empresas.serasaexperian.com.br/consulta-gratis/MAIBERTI-IND-E-COM-DE-CONFECCOES-LTDA-ME-00058650000198",
+        "https://cnpjcheck.com.br/empresa/maiberti-ind-e-com-de-confeccoes-ltda-00058650000198",
+        "https://cnpja.com/office/00058650000198",
+        "https://www.datastone.com.br/consulta/empresa/79233672000105-rovitex-ind-e-com-de-malhas",
+        "https://toreva.com.br/consulta-cnpj/00058650000198-maiberti-ind-e-com-de-confeccoes-ltda",
+        "https://cnpjcheck.com.br/empresas/sc/luiz-alves/confeccoes",
+        "https://empresasdobrasil.com/empresas/luiz-alves-sc/faccao-de-pecas-do-vestuario",
+        "https://advdinamico.com.br/socios/jose-henrique-zimmermann-1a17f32e"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00060085000101",
+        "legal_name": "RVB USINADOS GALVANOPLASTIA LTDA",
+        "trade_name": "",
+        "city": "Blumenau",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://srwatson.io/empresa/rvb-usinados-galvanoplastia-ltda-00060085000101",
+        "domain": "srwatson.io",
+        "confidence": "ALTA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)"
+        ],
+        "accessible": true,
+        "confirmed": true
+      },
+      "previous_confidence": "ALTA",
+      "candidates": [
+        "https://srwatson.io/empresa/rvb-usinados-galvanoplastia-ltda-00060085000101",
+        "https://cnpja.com/office/00060085000101",
+        "https://breela.com.br/cnpj/00060085000101-rvb-usinados-galvanoplastia-ltda",
+        "https://www.infoville.com.br/cnpj/02404306000210"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00060090000106",
+        "legal_name": "COMERCIAL DE ROLAMENTOS E CORREIAS LTDA",
+        "trade_name": "",
+        "city": "Cacador",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://empresas.serasaexperian.com.br/consulta-gratis/COMERCIAL-DE-ROLAMENTOS-E-CORREIAS-LTDA-00060090000106",
+        "domain": "empresas.serasaexperian.com.br",
+        "confidence": "BAIXA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)",
+          "Indício de agregador: confirmação automática bloqueada"
+        ],
+        "accessible": true,
+        "confirmed": false
+      },
+      "previous_confidence": "BAIXA",
+      "candidates": [
+        "https://empresas.serasaexperian.com.br/consulta-gratis/COMERCIAL-DE-ROLAMENTOS-E-CORREIAS-LTDA-00060090000106",
+        "https://cnpjcheck.com.br/empresa/comercial-de-rolamentos-e-correias-ltda-00060090000106",
+        "https://cnpja.com/office/00060090000106",
+        "https://empresas.serasaexperian.com.br/consulta-gratis/COMERCIAL-DE-ROLAMENTOS-E-CORREIAS-LTDA-EPP-00060090000106",
+        "https://www.infoville.com.br/cnpj/00060090000106",
+        "https://www.datastone.com.br/consulta/empresa/82800483000173-casa-das-fechaduras-tartarotti"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00060102000100",
+        "legal_name": "EUROAMERICA IMPORT COMERCIO LTDA",
+        "trade_name": "",
+        "city": "Balneario Camboriu",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://www.infoville.com.br/cnpj/00060102000100",
+        "domain": "infoville.com.br",
+        "confidence": "ALTA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)"
+        ],
+        "accessible": true,
+        "confirmed": true
+      },
+      "previous_confidence": "ALTA",
+      "candidates": [
+        "https://cnpja.com/office/00060102000100",
+        "https://www.infoville.com.br/cnpj/00060102000100",
+        "https://cnpjweb.com.br/consulta/00060102000100-euroamerica-import-comercio-ltda",
+        "https://www.datastone.com.br/consulta/empresa/84588417000107-santos-automotivo",
+        "https://inddex.com.br/empresas/sc/balneario-camboriu/comercio",
+        "https://www.turbovenda.com.br/empresas/atacado-de-autopecas/balneario-camboriu-sc",
+        "https://maiscnpj.com.br/cnpj/pdf.php?cnpj=00060102000100",
+        "https://cnpjob.com.br/empresa/autotec-distribuidora/24930212000136",
+        "https://www.sneps.com.br/empresa/estacao-dos-presentes-centro-balneario-camboriu-sc-07063073000171"
+      ],
+      "expected_corporate_domain": null
+    },
+    {
+      "company": {
+        "cnpj": "00061615000128",
+        "legal_name": "FLORICULTURA ELAINE LTDA",
+        "trade_name": "",
+        "city": "Chapeco",
+        "state": "",
+        "registration_status": "ATIVA",
+        "main_cnae": ""
+      },
+      "previous": {
+        "website": "https://empresas.serasaexperian.com.br/consulta-gratis/FLORICULTURA-ELAINE-LTDA-ME-00061615000128",
+        "domain": "empresas.serasaexperian.com.br",
+        "confidence": "BAIXA",
+        "score": 90,
+        "evidence": [
+          "Página pública acessível (+10)",
+          "CNPJ exato no conteúdo (+60)",
+          "Nome empresarial no conteúdo (+20)",
+          "Indício de agregador: confirmação automática bloqueada"
+        ],
+        "accessible": true,
+        "confirmed": false
+      },
+      "previous_confidence": "BAIXA",
+      "candidates": [
+        "https://empresas.serasaexperian.com.br/consulta-gratis/FLORICULTURA-ELAINE-LTDA-ME-00061615000128",
+        "https://www.datastone.com.br/consulta/empresa/00061615000128-floricultura-elaine",
+        "https://www.empresaqui.com.br/detalhes-de-empresas/00061615000128-FLORICULTURA-ELAINE-LTDA",
+        "https://cnpja.com/office/00061615000128",
+        "https://inddex.com.br/es/empresa/00061615000128/floricultura-elaine-ltda",
+        "https://toreva.com.br/consulta-cnpj/00061615000128-floricultura-elaine-ltda",
+        "https://prospectavendas.com.br/lista-de-empresas/floriculturas/sc/chapeco"
+      ],
+      "expected_corporate_domain": null
+    }
+  ]
+}
