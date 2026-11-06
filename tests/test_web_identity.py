@@ -52,3 +52,18 @@ def test_unrelated_social_people_and_generic_posts_are_not_shown_as_profiles():
     assert not corresponding_social('https://www.instagram.com/p/CPECzmPFAlh/',company)
     assert not corresponding_social('https://br.linkedin.com/in/jaquemagalhaes',company)
     assert corresponding_social('https://www.instagram.com/thpbrasil/',company)
+
+
+def test_forms_never_use_get_and_stay_disabled_until_javascript_is_ready():
+    from html.parser import HTMLParser
+    class Forms(HTMLParser):
+        def __init__(self):super().__init__();self.forms={};self.buttons={}
+        def handle_starttag(self,tag,attrs):
+            attrs=dict(attrs)
+            if tag=='form':self.forms[attrs['id']]=attrs
+            if tag=='button' and 'id' in attrs:self.buttons[attrs['id']]=attrs
+    parsed=Forms();parsed.feed((STATIC/'index.html').read_text(encoding='utf-8'))
+    for form,action,button in [('login-form','/api/login','login-button'),('search-form','/api/consultas','search-button')]:
+        assert parsed.forms[form]['method'].lower()=='post'
+        assert parsed.forms[form]['action']==action
+        assert 'disabled' in parsed.buttons[button]

@@ -177,4 +177,6 @@ if('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: red
   const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target);}}),{threshold:.12}); document.querySelectorAll('.reveal').forEach(element=>observer.observe(element));
 }
 setInterval(()=>{if(!document.hidden && state.csrf && !state.busy) refreshBalance().catch(()=>{});},15000);
+// Enable native submission only after every form handler has been registered.
+$('login-button').disabled=false;
 authorized().catch(()=>signedOut());
