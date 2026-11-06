@@ -10,12 +10,14 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import select, text
+from sqlalchemy.exc import OperationalError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.services.importer import valid_cnpj
 from app.web import auth
 from app.web.config import WebSettings
 from app.web.store import Store, WebError, consultations, digest
+from app.web.diagnostics import log_database_error
 
 STATIC = Path(__file__).parent / 'static'
 MESSAGES = {
@@ -29,6 +31,7 @@ MESSAGES = {
     'CONFIGURACAO_PENDENTE': 'A plataforma aguarda configuração pelo responsável.',
     'NAO_ENCONTRADO': 'Consulta não encontrada.', 'REQUISICAO_INVALIDA': 'Confira os dados informados.',
     'ERRO_TECNICO': 'Não foi possível concluir a consulta. Tente novamente.',
+    'BANCO_INDISPONIVEL': 'A conexão com o banco está temporariamente indisponível. Tente novamente em instantes.',
 }
 
 
@@ -78,6 +81,11 @@ def create_app(settings=None, store=None):
     async def invalid_body(request, exc):
         return JSONResponse(dict(erro='REQUISICAO_INVALIDA', mensagem=MESSAGES['REQUISICAO_INVALIDA']), status_code=422)
 
+    @app.exception_handler(OperationalError)
+    async def database_failure(request, exc):
+        log_database_error(exc)
+        return JSONResponse(dict(erro='BANCO_INDISPONIVEL', mensagem=MESSAGES['BANCO_INDISPONIVEL']), status_code=503)
+
     @app.exception_handler(Exception)
     async def unexpected(request, exc):
         logging.getLogger(__name__).error('Falha web: %s', type(exc).__name__)
@@ -120,7 +128,8 @@ def create_app(settings=None, store=None):
             with database().engine.connect() as conn:
                 conn.execute(select(consultations.c.id).limit(1))
             return dict(status='ok')
-        except Exception:
+        except Exception as exc:
+            log_database_error(exc)
             return JSONResponse({'status': 'indisponivel'}, status_code=503)
 
     @app.post('/api/login')
