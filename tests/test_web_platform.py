@@ -282,3 +282,12 @@ def test_web_worker_keeps_small_pilot_limits():
     assert limited.retries==0 and limited.queries==1 and limited.candidates==1
     assert not limited.enable_brasilapi
     assert external_settings(Settings(website_max_requests=7,website_rpm=2)).website_max_requests==7
+
+
+def test_native_login_post_fails_safely_without_echoing_credentials(web):
+    client,store,_,config=web
+    response=client.post('/api/login',data={'username':'equipe','password':'Senha-fixture-123'},headers={'Origin':config.origin})
+    assert response.status_code==422
+    assert 'Senha-fixture-123' not in response.text and 'password' not in response.text
+    assert '?' not in str(response.request.url)
+    assert store.balance('dazumdigital')['consumidos']==0
