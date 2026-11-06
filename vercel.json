@@ -1,1 +1,16 @@
-{"$schema":"https://openapi.vercel.sh/vercel.json","git":{"deploymentEnabled":false}}
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {"deploymentEnabled": false},
+  "functions": {
+    "app/web/api.py": {
+      "maxDuration": 30,
+      "excludeFiles": "{.venv/**,var/**,data/**,build/**,dist/**,tests/**,docs/**,examples/**,.env*,provider_verification*.json,*.sqlite*,*.log}"
+    }
+  },
+  "headers": [
+    {"source": "/assets/(.*)", "headers": [
+      {"key": "X-Content-Type-Options", "value": "nosniff"},
+      {"key": "Referrer-Policy", "value": "no-referrer"}
+    ]}
+  ]
+}

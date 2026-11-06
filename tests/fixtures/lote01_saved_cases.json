@@ -1,0 +1,282 @@
+{
+  "source": "C:\\Cristiano\\busca_cnpjs\\outputs\\cnpj-enrichment\\data\\output\\restantes7-lote01\\reclassificacao.sqlite",
+  "cases": [
+    {
+      "cnpj": "00064529000179",
+      "original": "00064529000179",
+      "position": 11,
+      "company": "{\"cnpj\": \"00064529000179\", \"legal_name\": \"DUALE MODAS LTDA\", \"trade_name\": \"\", \"city\": \"Chapeco\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"PENDENTE\", \"score\": 0, \"evidence\": [\"Falha técnica ao validar candidato; vínculo não avaliado\", \"ROBOTS_BLOQUEADO\", \"SITE_INACESSIVEL\"], \"accessible\": false, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation5:5dda5cb72883\", \"site_type\": \"VALIDATION_ERROR\", \"signals\": {\"technical_errors\": [\"ROBOTS_BLOQUEADO\", \"SITE_INACESSIVEL\"], \"candidate_url\": \"https://www.yelp.com/biz/duale-modas-chapec%C3%B3\"}, \"inspected_urls\": [], \"page_evidence\": []}",
+      "candidates": "[\"https://www.instagram.com/dualemodas/\", \"https://www.facebook.com/dualemodas/?locale=pt_BR\", \"https://www.jusbrasil.com.br/nome/duale-modas-ltda/cnpj-FKdVyS_7xWW\", \"https://www.econodata.com.br/consulta-empresa/00064529000179-duale-modas-ltda\", \"https://www.solutudo.com.br/empresas/sc/chapeco/roupas-e-acessorios/duale-modas-ltda-11001324\", \"https://www.instagram.com/p/CdYU0LMuTvR/\", \"https://inddex.com.br/es/empresa/00064529000179/duale-modas-ltda\", \"https://www.yelp.com/biz/duale-modas-chapec%C3%B3\", \"https://advdinamico.com.br/empresas/00064529000179\", \"https://chapeco.net.br/sobre/duale-modas-chapeco-sc\", \"https://www.ipea.gov.br/participacao/images/pdfs/livro_efetividade.pdf\", \"https://leis.org/municipais/sc/chapeco/lei/lei-ordinaria/1983/170/lei-ordinaria-n-170-1983-institui-o-codigo-tributario-do-municipio-de-chapeco-e-da-outras\", \"https://www.tudodechapeco.com.br/guia-comercial/categoria/47-roupas-e-acessorios/?pagina=4\", \"https://www.academia.edu/26472939/ICHoLS_XIII_Conference_Handbook\", \"https://bibliotecatede.uninove.br/bitstream/tede/1406/2/Donizete%20Antonio%20Mariano.pdf\", \"https://web.bndes.gov.br/bib/jspui/bitstream/1408/1788/2/Hist%C3%B3rias%20de%20um%20Brasil%20que%20funciona2004_BD_P.pdf\", \"https://ndl.ethernet.edu.et/bitstreams/61d65d1d-08b7-4bf7-a17f-df3f624c23c1/download\", \"https://indd.adobe.com/view/publication/8fc24cd4-2ffb-445a-8b3c-7542abeb2a4f/49sb/publication-web-resources/pdf/Reflexoes_sobre_internet_tecnologia_e_comunicacao.pdf\", \"https://theanarchistlibrary.org/library/venturini-degirmenci-morales-social-ecology-right-to-the-city\", \"https://www.gov.br/mj/pt-br/assuntos/seus-direitos/migracoes/portal-de-imigracao-laboral/obmigra-1/relatorios-obmigra/relatorios-anuais/2016/relatorio_anual_2016.pdf\"]",
+      "source": "PLANILHA_LOCAL;serper",
+      "status": "FALHA_VALIDACAO_SITE_OFICIAL",
+      "confidence": "PENDENTE",
+      "attempts": 1,
+      "error": "ROBOTS_BLOQUEADO;SITE_INACESSIVEL",
+      "updated_at": 1793732083.693274
+    },
+    {
+      "cnpj": "00064804000154",
+      "original": "00064804000154",
+      "position": 12,
+      "company": "{\"cnpj\": \"00064804000154\", \"legal_name\": \"MIRELLE BORBA DE SOUZA MELLO\", \"trade_name\": \"\", \"city\": \"Santa Rosa Do Sul\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"BAIXA\", \"score\": 50, \"evidence\": [\"Página acessível; menção de nome/CNPJ não comprova propriedade\", \"exact_cnpj\", \"name_match\"], \"accessible\": true, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation5:5dda5cb72883\", \"site_type\": \"CORPORATE_PENDING\", \"signals\": {\"exact_cnpj\": true, \"name_match\": true, \"brand_domain\": false, \"heading_brand\": false, \"legal_owner\": false, \"corporate_navigation\": false, \"review_candidate_url\": \"https://www.cnpjspot.com.br/estado/sc/municipio/santa-rosa-do-sul\", \"candidate_url\": \"https://www.cnpjspot.com.br/estado/sc/municipio/santa-rosa-do-sul\"}, \"inspected_urls\": [\"https://www.cnpjspot.com.br/estado/sc/municipio/santa-rosa-do-sul\"], \"page_evidence\": [{\"url\": \"https://www.cnpjspot.com.br/estado/sc/municipio/santa-rosa-do-sul\", \"content_sha256\": \"0f8420a763a78110a6c62580570381efcc581cd1b5fd7ee8ed3f80eb772b1dbc\", \"title\": \"Empresas em SANTA ROSA DO SUL - SC | CNPJSpot Empresas em SANTA ROSA DO SUL - SC\", \"cnpjs\": [\"00000000596680\", \"00055800000100\", \"00060883000125\", \"00064804000154\", \"00068626000130\", \"00081755000168\", \"00081770000106\", \"00092383000175\", \"00101512000144\", \"00102978000164\", \"00107265000193\", \"00119298000153\", \"00131766000105\", \"00140412000127\", \"00145564000112\", \"00159999000116\", \"00199085000189\", \"00210191000116\", \"00218454000133\", \"00219590000148\"], \"exact_cnpj\": true, \"owner_context\": \"\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-03T18:55:44.661900+00:00\", \"redirect_chain\": []}]}",
+      "candidates": "[\"https://www.econodata.com.br/consulta-empresa/00064804000154-mirelle-borba-de-souza-mello\", \"http://cnpj.info/Mirelle-Borba-de-Souza-Mello\", \"https://www.jusbrasil.com.br/processos/343833238/processo-n-500XXXX-4220188240189-do-tjsc\", \"https://www.solutudo.com.br/empresas/sc/sta-rosa-sul/roupas-e-acessorios/mirelle-borba-de-souza-mello-7584283\", \"https://cnpj.biz/00064804000154\", \"https://www.procep.com.br/sc/santa-rosa-do-sul/indefinido/88965000/pagina1\", \"https://www.jusbrasil.com.br/processos/nome/55049923/arilton-andrade\", \"https://www.solutudo.com.br/empresas/sc/sta-rosa-sul/roupas+e+acessorios\", \"https://www.solutudo.com.br/empresas/sc/sta-rosa-sul/roupas-e-acessorios/naira-modas-comercio-de-vestuario-calcados-e-acessorios-ltda-7584492\", \"https://www.cnpjspot.com.br/estado/sc/municipio/santa-rosa-do-sul\", \"https://busca.tjsc.jus.br/dje-consulta/rest/diario/caderno?edicao=4830&cdCaderno=4\", \"https://portal.doe.sea.sc.gov.br/repositorio/2026/20260526/Jornal/22761.pdf\", \"https://www.saude.sc.gov.br/index.php/pt/component/edocman/unidades-de-assistencia-farmaceutica-do-cesaf-em-santa-catarina/download\", \"https://api.mziq.com/mzfilemanager/v2/d/4d705e6d-cd28-4747-8452-0a0a616e5243/8078ac3a-21cb-4478-9d58-bf4f3b052ea1?origin=1\", \"https://deoab.oab.org.br/assets/diarios/diario-eletronico-oab-25-08-2026.pdf\", \"http://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/0/f/7/0f74e380345055b438848ed891b4069329aa47e4a0347619a58553d0c7fc7d7d/ea19ce09-bb48-497d-86d3-429e5d9cb5ce-13680-DOE_19185_03_10_2011_44F.pdf\", \"https://transparencia.mpf.mp.br/conteudo/diarios-e-boletins/diario-oficial-da-uniao-1/2015/dou2_2015_12_14.pdf\", \"https://www.tm2.org.br/content/uploads/2021/09/Nivel-B-OFICIAL.pdf\", \"https://febrace.org.br/wp-content/uploads/2025/07/anais2023.pdf\"]",
+      "source": "PLANILHA_LOCAL;serper;website_publico",
+      "status": "PENDENTE_VALIDACAO_SITE_OFICIAL",
+      "confidence": "BAIXA",
+      "attempts": 1,
+      "error": "CONTEUDO_NAO_SUPORTADO",
+      "updated_at": 1793732150.5569103
+    },
+    {
+      "cnpj": "00064909000103",
+      "original": "00064909000103",
+      "position": 13,
+      "company": "{\"cnpj\": \"00064909000103\", \"legal_name\": \"KOBARG COMERCIO DE RODAS & ACESSORIOS LTDA\", \"trade_name\": \"\", \"city\": \"Itajai\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"NAO_ENCONTRADO\", \"score\": 0, \"evidence\": [\"SEM_SITE_OFICIAL_CONFIRMADO\", \"https://danielthiagoadv.com.br/wp-content/uploads/2024/09/RELACAO-CREDORES-CONSOLIDADA.pdf: PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO\", \"https://portal.doe.sea.sc.gov.br/repositorio/2016/20160506/Jornal/1415.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\", \"https://hemeroteca.ciasc.sc.gov.br/oestadofpolis/1979/EST197919305.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\", \"https://cedoc.museus.gov.br/wp-content/uploads/tainacan-items/113506/114740/GuiaPrimavera1209.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\", \"https://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/0/4/c/04c1b262e3b08583278fa15c83845ee9b017773ece38ab8a85234482d64f761a/99e0087e-8c6d-4e31-8db6-77a2c7170bf8-25901-DOE_17935_31_07_2006_52F_JUCESC_17935_08F.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\", \"http://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/d/c/5/dc53df9b52becff5b4430715f53e15af7185c72bb870684be4f0016040135947/8fdc02e0-3972-4881-877b-3c484ecf2f22-13884-DOE_19094_24_05_2011_40F_JUCESC_19094_08F.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\", \"https://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/4/9/1/4919f624f6e1581788d47d283a469566b21e631cc2281912bb7107d5f9918214/0e86b00a-8d34-4c22-a9e6-f1e4313da43e-16137-DOE_17773_02_12_2005_80F.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\"], \"accessible\": false, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation5:5dda5cb72883\", \"site_type\": \"THIRD_PARTY_ONLY\", \"signals\": {}, \"inspected_urls\": [], \"page_evidence\": []}",
+      "candidates": "[\"https://danielthiagoadv.com.br/wp-content/uploads/2024/09/RELACAO-CREDORES-CONSOLIDADA.pdf\", \"https://portal.doe.sea.sc.gov.br/repositorio/2016/20160506/Jornal/1415.pdf\", \"https://hemeroteca.ciasc.sc.gov.br/oestadofpolis/1979/EST197919305.pdf\", \"https://cedoc.museus.gov.br/wp-content/uploads/tainacan-items/113506/114740/GuiaPrimavera1209.pdf\", \"https://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/0/4/c/04c1b262e3b08583278fa15c83845ee9b017773ece38ab8a85234482d64f761a/99e0087e-8c6d-4e31-8db6-77a2c7170bf8-25901-DOE_17935_31_07_2006_52F_JUCESC_17935_08F.pdf\", \"http://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/d/c/5/dc53df9b52becff5b4430715f53e15af7185c72bb870684be4f0016040135947/8fdc02e0-3972-4881-877b-3c484ecf2f22-13884-DOE_19094_24_05_2011_40F_JUCESC_19094_08F.pdf\", \"https://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/4/9/1/4919f624f6e1581788d47d283a469566b21e631cc2281912bb7107d5f9918214/0e86b00a-8d34-4c22-a9e6-f1e4313da43e-16137-DOE_17773_02_12_2005_80F.pdf\"]",
+      "source": "PLANILHA_LOCAL;serper",
+      "status": "SEM_SITE_OFICIAL_CONFIRMADO",
+      "confidence": "NAO_ENCONTRADO",
+      "attempts": 1,
+      "error": "",
+      "updated_at": 1793732199.6085722
+    }
+  ],
+  "audits": {
+    "00064529000179": {
+      "https://www.instagram.com/dualemodas/": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.facebook.com/dualemodas/?locale=pt_BR": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.jusbrasil.com.br/nome/duale-modas-ltda/cnpj-FKdVyS_7xWW": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.econodata.com.br/consulta-empresa/00064529000179-duale-modas-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.solutudo.com.br/empresas/sc/chapeco/roupas-e-acessorios/duale-modas-ltda-11001324": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.instagram.com/p/CdYU0LMuTvR/": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://inddex.com.br/es/empresa/00064529000179/duale-modas-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://advdinamico.com.br/empresas/00064529000179": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://chapeco.net.br/sobre/duale-modas-chapeco-sc": {
+        "decision": "VALIDATED",
+        "confidence": "NAO_ENCONTRADO",
+        "site_type": "THIRD_PARTY",
+        "confirmed": false,
+        "priority": 10,
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.yelp.com/biz/duale-modas-chapec%C3%B3": {
+        "decision": "ERROR",
+        "reason": "ROBOTS_BLOQUEADO",
+        "details": {},
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.ipea.gov.br/participacao/images/pdfs/livro_efetividade.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.tudodechapeco.com.br/guia-comercial/categoria/47-roupas-e-acessorios/?pagina=4": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://bibliotecatede.uninove.br/bitstream/tede/1406/2/Donizete%20Antonio%20Mariano.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://web.bndes.gov.br/bib/jspui/bitstream/1408/1788/2/Hist%C3%B3rias%20de%20um%20Brasil%20que%20funciona2004_BD_P.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://indd.adobe.com/view/publication/8fc24cd4-2ffb-445a-8b3c-7542abeb2a4f/49sb/publication-web-resources/pdf/Reflexoes_sobre_internet_tecnologia_e_comunicacao.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.gov.br/mj/pt-br/assuntos/seus-direitos/migracoes/portal-de-imigracao-laboral/obmigra-1/relatorios-obmigra/relatorios-anuais/2016/relatorio_anual_2016.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://leis.org/municipais/sc/chapeco/lei/lei-ordinaria/1983/170/lei-ordinaria-n-170-1983-institui-o-codigo-tributario-do-municipio-de-chapeco-e-da-outras": {
+        "decision": "ERROR",
+        "reason": "SITE_INACESSIVEL",
+        "details": {},
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      }
+    },
+    "00064804000154": {
+      "https://www.econodata.com.br/consulta-empresa/00064804000154-mirelle-borba-de-souza-mello": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "http://cnpj.info/Mirelle-Borba-de-Souza-Mello": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.jusbrasil.com.br/processos/343833238/processo-n-500XXXX-4220188240189-do-tjsc": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.solutudo.com.br/empresas/sc/sta-rosa-sul/roupas-e-acessorios/mirelle-borba-de-souza-mello-7584283": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://cnpj.biz/00064804000154": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.jusbrasil.com.br/processos/nome/55049923/arilton-andrade": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.solutudo.com.br/empresas/sc/sta-rosa-sul/roupas+e+acessorios": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.solutudo.com.br/empresas/sc/sta-rosa-sul/roupas-e-acessorios/naira-modas-comercio-de-vestuario-calcados-e-acessorios-ltda-7584492": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.procep.com.br/sc/santa-rosa-do-sul/indefinido/88965000/pagina1": {
+        "decision": "VALIDATED",
+        "confidence": "NAO_ENCONTRADO",
+        "site_type": "THIRD_PARTY",
+        "confirmed": false,
+        "priority": 0,
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://busca.tjsc.jus.br/dje-consulta/rest/diario/caderno?edicao=4830&cdCaderno=4": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://portal.doe.sea.sc.gov.br/repositorio/2026/20260526/Jornal/22761.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.saude.sc.gov.br/index.php/pt/component/edocman/unidades-de-assistencia-farmaceutica-do-cesaf-em-santa-catarina/download": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://deoab.oab.org.br/assets/diarios/diario-eletronico-oab-25-08-2026.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "http://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/0/f/7/0f74e380345055b438848ed891b4069329aa47e4a0347619a58553d0c7fc7d7d/ea19ce09-bb48-497d-86d3-429e5d9cb5ce-13680-DOE_19185_03_10_2011_44F.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://transparencia.mpf.mp.br/conteudo/diarios-e-boletins/diario-oficial-da-uniao-1/2015/dou2_2015_12_14.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.tm2.org.br/content/uploads/2021/09/Nivel-B-OFICIAL.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://febrace.org.br/wp-content/uploads/2025/07/anais2023.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://www.cnpjspot.com.br/estado/sc/municipio/santa-rosa-do-sul": {
+        "decision": "VALIDATED",
+        "confidence": "BAIXA",
+        "site_type": "CORPORATE_CANDIDATE",
+        "confirmed": false,
+        "priority": 0,
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://api.mziq.com/mzfilemanager/v2/d/4d705e6d-cd28-4747-8452-0a0a616e5243/8078ac3a-21cb-4478-9d58-bf4f3b052ea1?origin=1": {
+        "decision": "ERROR",
+        "reason": "CONTEUDO_NAO_SUPORTADO",
+        "details": {},
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      }
+    },
+    "00064909000103": {
+      "https://danielthiagoadv.com.br/wp-content/uploads/2024/09/RELACAO-CREDORES-CONSOLIDADA.pdf": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://portal.doe.sea.sc.gov.br/repositorio/2016/20160506/Jornal/1415.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://hemeroteca.ciasc.sc.gov.br/oestadofpolis/1979/EST197919305.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://cedoc.museus.gov.br/wp-content/uploads/tainacan-items/113506/114740/GuiaPrimavera1209.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/0/4/c/04c1b262e3b08583278fa15c83845ee9b017773ece38ab8a85234482d64f761a/99e0087e-8c6d-4e31-8db6-77a2c7170bf8-25901-DOE_17935_31_07_2006_52F_JUCESC_17935_08F.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "http://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/d/c/5/dc53df9b52becff5b4430715f53e15af7185c72bb870684be4f0016040135947/8fdc02e0-3972-4881-877b-3c484ecf2f22-13884-DOE_19094_24_05_2011_40F_JUCESC_19094_08F.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      },
+      "https://acervo.arquivopublico.sc.gov.br/uploads/r/arquivo-publico-do-estado-de-santa-catarina-apesc/4/9/1/4919f624f6e1581788d47d283a469566b21e631cc2281912bb7107d5f9918214/0e86b00a-8d34-4c22-a9e6-f1e4313da43e-16137-DOE_17773_02_12_2005_80F.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation5:5dda5cb72883"
+      }
+    }
+  }
+}

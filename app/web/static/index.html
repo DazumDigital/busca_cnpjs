@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Consulta de CNPJ DazumDigital. Sites oficiais, presença digital e referências empresariais em um só lugar.">
+  <title>Consulta de CNPJ · DazumDigital</title>
+  <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+  <link rel="preload" href="/assets/fonts/Poppins-Regular.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="/assets/tokens.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#consulta">Ir para a consulta</a>
+  <header class="header" id="header">
+    <div class="shell nav">
+      <a class="brand" href="#consulta" aria-label="DazumDigital, início"><picture><source media="(max-width: 540px)" srcset="/assets/logos/dazum-square-orange.svg"><img src="/assets/logos/dazum-wordmark-orange.svg" width="184" height="36" alt="DazumDigital"></picture><span class="brand-caption">CONSULTA<br>DE CNPJ</span></a>
+      <nav aria-label="Navegação principal"><a class="nav-link active" href="#consulta">Consulta de CNPJ</a><a class="nav-link" href="#historico">Histórico</a></nav>
+      <div class="account"><span class="internal"><i></i> Acesso interno</span><button class="quiet" id="logout" hidden>Sair <span aria-hidden="true">↗</span></button></div>
+    </div>
+  </header>
+  <main class="shell" id="main">
+    <section class="hero enter" id="consulta" aria-labelledby="main-title">
+      <div class="hero-copy"><p class="eyebrow"><span class="line"></span> CONEXÕES QUE FAZEM SENTIDO</p><h1 id="main-title">Consulte empresas<br>pelo <span>CNPJ.</span></h1><p class="lead">Encontre sites oficiais, presença digital e fontes relacionadas a empresas em uma única consulta.</p><div class="hero-caption"><span class="tiny-check" aria-hidden="true">✓</span> Evidências claras. Decisões mais seguras.</div></div>
+      <aside class="wallet" aria-label="Saldo da organização"><div class="wallet-top"><span class="eyebrow">SEU ESPAÇO DE PESQUISA</span><span class="wallet-icon" aria-hidden="true">◈</span></div><p>Tokens disponíveis</p><div class="token-line"><strong id="balance" aria-live="polite">—</strong><span class="token-unit">tokens</span></div><div class="wallet-bottom"><span><b id="consumed">—</b> utilizados</span><span>Saldo compartilhado</span></div><p class="wallet-note">1 consulta concluída = 1 token</p></aside>
+    </section>
+    <section class="login-panel enter" id="login-panel" aria-labelledby="login-title">
+      <div><span class="eyebrow">ACESSO DA EQUIPE</span><h2 id="login-title">Seu próximo contato começa aqui.</h2><p>Entre com sua conta DazumDigital para consultar empresas e acessar o saldo da organização.</p></div>
+      <form id="login-form"><label for="username">Usuário</label><input id="username" name="username" autocomplete="username" required maxlength="120" placeholder="Seu usuário"><label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256" placeholder="Sua senha"><button class="primary" id="login-button" type="submit">Entrar na plataforma <span aria-hidden="true">↗</span></button><p id="login-error" class="error" role="alert"></p></form>
+    </section>
+    <section class="search-panel enter" id="search-panel" aria-labelledby="search-title" hidden>
+      <div class="search-heading"><div><span class="step">01 / PESQUISAR</span><h2 id="search-title">Qual empresa você procura?</h2></div><span class="private-label"><span aria-hidden="true">◇</span> Ambiente da sua equipe</span></div>
+      <form id="search-form" novalidate><div class="field"><label for="cnpj">CNPJ da empresa</label><div class="input-wrap"><span aria-hidden="true" class="search-icon">⌕</span><input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="00.000.000/0000-00" aria-describedby="search-help search-error" required><span class="input-check" id="input-check" aria-hidden="true"></span></div></div><button type="submit" class="primary search-button" id="search-button"><span class="spinner" aria-hidden="true" hidden></span><span id="search-button-label">Consultar CNPJ</span><span class="arrow" aria-hidden="true">↗</span></button></form>
+      <div class="search-bottom"><p id="search-help">Digite os 14 números. Você também pode colar o CNPJ formatado.</p><span id="reservation" hidden>Há tokens reservados para pesquisas em andamento.</span></div><p id="search-error" class="error" role="alert"></p>
+      <div class="external-option" id="external-option" hidden><p>Este CNPJ ainda não possui uma pesquisa registrada. Uma nova pesquisa usa 1 token quando concluída.</p><button class="outline" id="external-button">Autorizar nova pesquisa</button></div>
+    </section>
+    <div class="progress-panel" id="progress-panel" role="status" hidden><span class="spinner" aria-hidden="true"></span><div><b>Pesquisa em andamento</b><p>Estamos consultando as informações desta empresa.</p></div></div>
+    <section id="results" class="results" aria-labelledby="results-title" hidden tabindex="-1">
+      <div class="section-head"><div><span class="step">02 / DESCOBRIR</span><h2 id="results-title">O que encontramos</h2></div><span class="result-date" id="result-date"></span></div>
+      <div class="company-card" id="company-card"></div>
+      <div class="result-summary" id="result-summary"></div>
+      <div class="filters" id="filters" role="group" aria-label="Filtrar links"></div>
+      <div id="result-groups"></div>
+      <p class="data-note" id="data-note"></p>
+      <button class="outline" id="new-query">Consultar outra empresa <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="history-section" id="historico" aria-labelledby="history-title" hidden><div class="section-head"><div><span class="step">SUA ATIVIDADE</span><h2 id="history-title">Últimas consultas</h2></div><span class="muted">Reabrir não consome tokens</span></div><div id="history-list" class="history-list"></div></section>
+    <section class="guide reveal" id="como-funciona" aria-labelledby="guide-title"><div><span class="step">DA PESQUISA À DECISÃO</span><h2 id="guide-title">Cada fonte, no seu lugar.</h2><p>Mais contexto para avaliar a presença digital de uma empresa.</p></div><div class="guide-grid"><article><span class="guide-number">01</span><h3>Sites oficiais</h3><p>Identificação de titularidade com evidências. Confirmações automáticas e manuais ficam distintas.</p></article><article><span class="guide-number">02</span><h3>Presença digital</h3><p>Possíveis sites e redes sociais organizados para você revisar o vínculo com a empresa.</p></article><article><span class="guide-number">03</span><h3>Referências úteis</h3><p>Diretórios e fontes de terceiros, com confiança e ressalvas visíveis em cada resultado.</p></article></div></section>
+  </main>
+  <footer class="footer reveal"><div class="shell footer-top"><div><a class="brand" href="#consulta" aria-label="DazumDigital, voltar à consulta"><img src="/assets/logos/dazum-wordmark-cream.svg" width="184" height="36" alt="DazumDigital"></a><p>Informação organizada.<br>Conexões com mais contexto.</p></div><div><span class="eyebrow">PLATAFORMA</span><a href="#consulta">Consultar CNPJ <span aria-hidden="true">↗</span></a><a href="#como-funciona">Como os resultados são organizados <span aria-hidden="true">↗</span></a></div><div><span class="eyebrow">USO CONSCIENTE</span><p>Uma referência é uma fonte de informação.<br>Ela pode ser útil sem ser o site oficial.</p></div></div><div class="shell footer-bottom"><span>© DazumDigital · Consulta de CNPJ</span><span>Uso interno · Acesso autorizado</span></div></footer>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript><p class="error shell">Ative o JavaScript para entrar e realizar consultas.</p></noscript>
+</body>
+</html>

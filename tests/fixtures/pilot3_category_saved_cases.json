@@ -1,0 +1,216 @@
+{
+  "source": "C:\\Cristiano\\busca_cnpjs\\outputs\\cnpj-enrichment\\data\\output\\novo-lote-independente\\reclassificacao.sqlite",
+  "cases": [
+    {
+      "cnpj": "00063327000102",
+      "original": "00063327000102",
+      "position": 11,
+      "company": "{\"cnpj\": \"00063327000102\", \"legal_name\": \"MOTO PECAS LH LTDA\", \"trade_name\": \"\", \"city\": \"Concordia\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"https://parafa.com.br/concordia-sc/automoveis/motocicletas-e-motonetas-conserto-pecas-e-acessorios\", \"domain\": \"parafa.com.br\", \"confidence\": \"BAIXA\", \"score\": 40, \"evidence\": [\"Página acessível; menção de nome/CNPJ não comprova propriedade\", \"name_match\", \"heading_brand\"], \"accessible\": true, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation4:28964484e1c8\", \"site_type\": \"CORPORATE_CANDIDATE\", \"signals\": {\"exact_cnpj\": false, \"name_match\": true, \"brand_domain\": false, \"heading_brand\": true, \"legal_owner\": false, \"corporate_navigation\": false}, \"inspected_urls\": [\"https://parafa.com.br/concordia-sc/automoveis/motocicletas-e-motonetas-conserto-pecas-e-acessorios\", \"https://parafa.com.br/contato\"], \"page_evidence\": [{\"url\": \"https://parafa.com.br/concordia-sc/automoveis/motocicletas-e-motonetas-conserto-pecas-e-acessorios\", \"content_sha256\": \"e60f4bf6da5e091689b9345c309915628b5b8e3b635cfc079f29044e341a4515\", \"title\": \"motocicletas e motonetas conserto pecas e acessorios em concordia/SC | Parafa motocicletas e motonetas conserto pecas e acessorios  em  concordia\", \"cnpjs\": [], \"exact_cnpj\": false, \"owner_context\": \"\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-03T17:59:32.424022+00:00\", \"redirect_chain\": []}, {\"url\": \"https://parafa.com.br/contato\", \"content_sha256\": \"dadca6fde33ff31f35b4d2246308c07569558d186acbe46bf51e50b6cdac10a9\", \"title\": \"Contato | Parafa Entre em contato\", \"cnpjs\": [], \"exact_cnpj\": false, \"owner_context\": \"\", \"source\": \"PUBLIC_PAGE_DERIVED_EVIDENCE\", \"reviewed_at_utc\": \"2026-11-03T17:59:32.424104+00:00\", \"redirect_chain\": []}]}",
+      "candidates": "[\"https://www.econodata.com.br/consulta-empresa/00063327000102-moto-pecas-lh-ltda\", \"https://br.linkedin.com/in/leonardo-echer-406182274\", \"https://parafa.com.br/concordia-sc/automoveis/motocicletas-e-motonetas-conserto-pecas-e-acessorios\", \"https://cnpj.biz/00063327000102\", \"https://www.solutudo.com.br/empresas/sc/concordia/lojas%20de%20motos?q=&cidade=concordia&estado=sc&com_ofertas=1\", \"https://www.solutudo.com.br/empresas/sc/concordia/lojas%20de%20motos?estado=sc&cidade=concordia&com_eventos=1&q=&com_whatsapp=1\", \"https://www.econodata.com.br/consulta-empresa/49305138000198-leandro-aparecido-brasil\", \"https://www.solutudo.com.br/empresas/sc/concordia/lojas+de+motos\", \"https://www.portalconcordia.com.br/guia-comercial/categoria/209-motocicletas\", \"https://oesteconecta.com.br/motos-em-concordia/\", \"https://www.tratoresecolheitadeiras.com.br/venda-em-concordia-sc?idrevenda=1144\", \"https://albamoto.com.br/single-tag/page/28/?sort=title-desc&view=list&srsltid=AYCX9vLN-O3B3jNrr8FWNMndh3LFg6-ABQMhOZgcwPq2WlUh6kfb1giB\", \"https://www.cdlconcordia.com.br/associados/124-mecanica-de-motos\", \"https://flycapacetes.com.br/store/r-r-de-oliveira-comercio-de-motopecas-lt/\", \"https://www.caminhoesecarretas.com.br/venda/caminhao/mercedes-benz/marca/16?carr=boiadeiro&cor=branco&filtro=caminhao-gm\", \"https://www.asxcapacete.com.br/institucional/loja-fisica?srsltid=AYCX9vJnpYhkiuUWtzD6YiCNFVWRPf668-hSpha7sMBn2Ys1jON3mPuA\", \"https://acheioprofissional.com.br/mecanico-de-motos/sao-jose\", \"https://www.dream.com.br/assistencia-tecnica\"]",
+      "source": "PLANILHA_LOCAL;serper;website_publico",
+      "status": "CONCLUIDO",
+      "confidence": "BAIXA",
+      "attempts": 1,
+      "error": "SITE_INACESSIVEL",
+      "updated_at": 1793728820.7318358
+    },
+    {
+      "cnpj": "00063336000101",
+      "original": "00063336000101",
+      "position": 12,
+      "company": "{\"cnpj\": \"00063336000101\", \"legal_name\": \"KONCREMAIS IMOVEIS LTDA\", \"trade_name\": \"\", \"city\": \"Joinville\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"NAO_ENCONTRADO\", \"score\": 0, \"evidence\": [\"SEM_SITE_OFICIAL_CONFIRMADO\", \"https://inddex.com.br/empresa/26310916000131/beral-empreendimentos-e-participacoes-ltda: CNPJ_DIVERGENTE_URL\", \"https://maiscnpj.com.br/empresas/sc/joinville/compra-e-venda-de-imoveis-proprios: DOMINIO_TERCEIRO\", \"https://inddex.com.br/empresa/52302134000160/green-village-empreendimentos-imobiliarios-ltda: CNPJ_DIVERGENTE_URL\", \"https://cop.jucesc.sc.gov.br/atas/pdf/ata_4317.pdf: FONTE_INSTITUCIONAL_DE_TERCEIRO\", \"https://www.sneps.com.br/empresa/45-779-487-luciano-dos-ntos-america-joinville-sc-45779487000190: CNPJ_DIVERGENTE_URL\", \"https://cnpjspot.com.br/cnpj/00063336000101: PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO\", \"https://maiscnpj.com.br/cnpj/76559939000152-koncreta-empreendimentos-imobiliarios-ltda: CNPJ_DIVERGENTE_URL\", \"https://inddex.com.br/es/empresa/00134895000157/corretagem-no-aluguel-de-imoveis-joinville-sc: CNPJ_DIVERGENTE_URL\", \"https://www.sintegrabrasil.com.br/cnpj/76559939000403: CNPJ_DIVERGENTE_URL\", \"https://www.procep.com.br/sc/joinville/america/rua-max-colin-89204635/pagina1: CONTEUDO_DE_DIRETORIO_OU_CONSULTA_CADASTRAL\"], \"accessible\": false, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation4:28964484e1c8\", \"site_type\": \"THIRD_PARTY_ONLY\", \"signals\": {}, \"inspected_urls\": [], \"page_evidence\": []}",
+      "candidates": "[\"https://inddex.com.br/empresa/26310916000131/beral-empreendimentos-e-participacoes-ltda\", \"https://maiscnpj.com.br/empresas/sc/joinville/compra-e-venda-de-imoveis-proprios\", \"https://inddex.com.br/empresa/52302134000160/green-village-empreendimentos-imobiliarios-ltda\", \"https://cop.jucesc.sc.gov.br/atas/pdf/ata_4317.pdf\", \"https://www.sneps.com.br/empresa/45-779-487-luciano-dos-ntos-america-joinville-sc-45779487000190\", \"https://cnpjspot.com.br/cnpj/00063336000101\", \"https://www.procep.com.br/sc/joinville/america/rua-max-colin-89204635/pagina1\", \"https://maiscnpj.com.br/cnpj/76559939000152-koncreta-empreendimentos-imobiliarios-ltda\", \"https://inddex.com.br/es/empresa/00134895000157/corretagem-no-aluguel-de-imoveis-joinville-sc\", \"https://www.sintegrabrasil.com.br/cnpj/76559939000403\"]",
+      "source": "PLANILHA_LOCAL;serper",
+      "status": "SEM_SITE_OFICIAL_CONFIRMADO",
+      "confidence": "NAO_ENCONTRADO",
+      "attempts": 1,
+      "error": "",
+      "updated_at": 1793728833.8579183
+    },
+    {
+      "cnpj": "00064379000101",
+      "original": "00064379000101",
+      "position": 13,
+      "company": "{\"cnpj\": \"00064379000101\", \"legal_name\": \"VLK ADMINISTRADORA DE IMOVEIS LTDA\", \"trade_name\": \"\", \"city\": \"Chapeco\", \"state\": \"\", \"registration_status\": \"ATIVA\", \"main_cnae\": \"\"}",
+      "validation": "{\"website\": \"\", \"domain\": \"\", \"confidence\": \"PENDENTE\", \"score\": 0, \"evidence\": [\"Candidato corporativo sem validação suficiente\", \"SITE_INACESSIVEL\"], \"accessible\": false, \"confirmed\": false, \"rules_version\": \"official-sites-v2:validation4:28964484e1c8\", \"site_type\": \"CORPORATE_PENDING\", \"signals\": {}, \"inspected_urls\": [], \"page_evidence\": []}",
+      "candidates": "[\"https://www.dnb.com/business-directory/company-information.offices_of_real_estate_agents_and_brokers.br.santa_catarina.chapeco.html\", \"http://cnpj.info/Postec-Instaladora-Eletrica-Ltda\", \"https://advdinamico.com.br/socios/cleusa-ines-volkweis-9cd7bf91\", \"https://casadosdados.com.br/solucao/cnpj/vlk-administradora-de-imoveis-ltda-00064379000101\", \"https://advdinamico.com.br/socios/pedro-luiz-volkweis-f8ec3ba3\", \"https://casadosdados.com.br/solucao/cnpj/ferro-velho-krause-ltda-05135507000176\", \"https://casadosdados.com.br/solucao/cnpj/rd-comercio-de-auto-pecas-ltda-81811143000266\", \"https://casadosdados.com.br/solucao/cnpj/transportadora-rapido-oeste-catarinense-ltda-03672295000130\", \"https://pt.scribd.com/document/401793039/Lista-de-Veiculos-2007-2016-pdf\"]",
+      "source": "PLANILHA_LOCAL;serper",
+      "status": "PENDENTE_VALIDACAO_SITE_OFICIAL",
+      "confidence": "PENDENTE",
+      "attempts": 1,
+      "error": "SITE_INACESSIVEL",
+      "updated_at": 1793728893.499062
+    }
+  ],
+  "audits": {
+    "00063327000102": {
+      "https://www.econodata.com.br/consulta-empresa/00063327000102-moto-pecas-lh-ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://br.linkedin.com/in/leonardo-echer-406182274": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://cnpj.biz/00063327000102": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.solutudo.com.br/empresas/sc/concordia/lojas%20de%20motos?q=&cidade=concordia&estado=sc&com_ofertas=1": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.solutudo.com.br/empresas/sc/concordia/lojas%20de%20motos?estado=sc&cidade=concordia&com_eventos=1&q=&com_whatsapp=1": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.econodata.com.br/consulta-empresa/49305138000198-leandro-aparecido-brasil": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.solutudo.com.br/empresas/sc/concordia/lojas+de+motos": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://parafa.com.br/concordia-sc/automoveis/motocicletas-e-motonetas-conserto-pecas-e-acessorios": {
+        "decision": "VALIDATED",
+        "confidence": "BAIXA",
+        "site_type": "CORPORATE_CANDIDATE",
+        "confirmed": false,
+        "priority": 0,
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.cdlconcordia.com.br/associados/124-mecanica-de-motos": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.asxcapacete.com.br/institucional/loja-fisica?srsltid=AYCX9vJnpYhkiuUWtzD6YiCNFVWRPf668-hSpha7sMBn2Ys1jON3mPuA": {
+        "decision": "VALIDATED",
+        "confidence": "NAO_ENCONTRADO",
+        "site_type": "CNPJ_DIVERGENTE",
+        "confirmed": false,
+        "priority": 10,
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.portalconcordia.com.br/guia-comercial/categoria/209-motocicletas": {
+        "decision": "ERROR",
+        "reason": "SITE_INACESSIVEL",
+        "details": {},
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      }
+    },
+    "00063336000101": {
+      "https://inddex.com.br/empresa/26310916000131/beral-empreendimentos-e-participacoes-ltda": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://maiscnpj.com.br/empresas/sc/joinville/compra-e-venda-de-imoveis-proprios": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://inddex.com.br/empresa/52302134000160/green-village-empreendimentos-imobiliarios-ltda": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://cop.jucesc.sc.gov.br/atas/pdf/ata_4317.pdf": {
+        "decision": "REJECTED",
+        "reason": "FONTE_INSTITUCIONAL_DE_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.sneps.com.br/empresa/45-779-487-luciano-dos-ntos-america-joinville-sc-45779487000190": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://cnpjspot.com.br/cnpj/00063336000101": {
+        "decision": "REJECTED",
+        "reason": "PADRAO_URL_DE_TERCEIRO_OU_DOCUMENTO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://maiscnpj.com.br/cnpj/76559939000152-koncreta-empreendimentos-imobiliarios-ltda": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://inddex.com.br/es/empresa/00134895000157/corretagem-no-aluguel-de-imoveis-joinville-sc": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.sintegrabrasil.com.br/cnpj/76559939000403": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.procep.com.br/sc/joinville/america/rua-max-colin-89204635/pagina1": {
+        "decision": "VALIDATED",
+        "confidence": "NAO_ENCONTRADO",
+        "site_type": "THIRD_PARTY",
+        "confirmed": false,
+        "priority": 0,
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      }
+    },
+    "00064379000101": {
+      "http://cnpj.info/Postec-Instaladora-Eletrica-Ltda": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://advdinamico.com.br/socios/cleusa-ines-volkweis-9cd7bf91": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://casadosdados.com.br/solucao/cnpj/vlk-administradora-de-imoveis-ltda-00064379000101": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://advdinamico.com.br/socios/pedro-luiz-volkweis-f8ec3ba3": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://casadosdados.com.br/solucao/cnpj/ferro-velho-krause-ltda-05135507000176": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://casadosdados.com.br/solucao/cnpj/rd-comercio-de-auto-pecas-ltda-81811143000266": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://casadosdados.com.br/solucao/cnpj/transportadora-rapido-oeste-catarinense-ltda-03672295000130": {
+        "decision": "REJECTED",
+        "reason": "CNPJ_DIVERGENTE_URL",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://www.dnb.com/business-directory/company-information.offices_of_real_estate_agents_and_brokers.br.santa_catarina.chapeco.html": {
+        "decision": "ERROR",
+        "reason": "SITE_INACESSIVEL",
+        "details": {},
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      },
+      "https://pt.scribd.com/document/401793039/Lista-de-Veiculos-2007-2016-pdf": {
+        "decision": "REJECTED",
+        "reason": "DOMINIO_TERCEIRO",
+        "rules_version": "official-sites-v2:validation4:28964484e1c8"
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.svg -text
+*.ttf binary
+*.ico binary
+*.png binary
+*.jpg binary
+app/web/static/fonts/OFL.txt -whitespace
