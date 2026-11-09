@@ -34,6 +34,21 @@ export function safeLink(value) {
     return url.href;
   } catch { return ''; }
 }
+const TECHNICAL = 'Falha técnica ao consultar as fontes externas. Nenhum token foi consumido.';
+const FAILURES = {
+  EMPRESA_NAO_PESQUISADA:'Sem pesquisa armazenada e pesquisa externa indisponível; nenhum token consumido.',
+  DADOS_ARMAZENADOS_INVALIDOS:'Dados armazenados inconsistentes; nenhum token consumido.', CANCELADA:'Encerrada; reserva liberada.',
+  CNPJ_NAO_ENCONTRADO:'Empresa não identificada na base cadastral pública disponível. Nenhum token foi consumido.',
+  CADASTRO_DIVERGENTE:'A base cadastral devolveu dados divergentes para este CNPJ. Nenhum token foi consumido.',
+  COTA_EXTERNA_ESGOTADA:'Limite de pesquisas externas atingido. Nenhuma chamada foi enviada e nenhum token foi consumido.',
+  COTA_ESGOTADA:'Pesquisa externa suspensa: o provedor de busca recusou novas chamadas. Nenhum token foi consumido.',
+  ACESSO_NEGADO:'Pesquisa externa suspensa até revisão do responsável. Nenhum token foi consumido.',
+  LIMITE_TEMPORARIO:'Fonte externa temporariamente limitada. Tente mais tarde. Nenhum token foi consumido.',
+  ETAPA_INTERROMPIDA:'A pesquisa foi interrompida durante uma chamada externa e não foi repetida, para evitar consumo duplicado. O responsável pode liberá-la após revisão. Nenhum token foi consumido.',
+  INTEGRACAO_NAO_VERIFICADA:'Pesquisa externa não liberada para esta conta ou CNPJ. Nenhum token foi consumido.',
+};
+// Only fixed codes are mapped; unknown codes never echo provider text.
+export function failureMessage(code) { return Object.hasOwn(FAILURES, code) ? FAILURES[code] : TECHNICAL; }
 export function groups(result) {
   return [
     {key:'oficial', title:'Site oficial', items:result.website_oficial ? [result.website_oficial] : []},

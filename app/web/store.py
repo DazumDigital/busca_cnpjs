@@ -163,7 +163,16 @@ class Store:
 
     def view(self, row, conn):
         return dict(id=row['id'], cnpj=row['cnpj'], status=row['status'], resultado=json.loads(row['result']) if row['result'] else None,
-                    criado_em=row['created_at'], saldo=self.balance(row['organization_id'], conn))
+                    criado_em=row['created_at'], saldo=self.balance(row['organization_id'], conn),
+                    erro=self.failure_code(conn, row) if row['status'] == 'FALHOU' else None)
+
+    def failure_code(self, conn, row):
+        """Código operacional fixo da falha; nunca mensagens brutas de provedores."""
+        code = conn.execute(select(batch_items.c.error_code).where(batch_items.c.consultation_id == row['id'])).scalar_one_or_none()
+        if code:
+            return code
+        return conn.execute(select(live_jobs.c.error).where(live_jobs.c.cnpj == row['cnpj'],
+            live_jobs.c.status.in_(['FAILED', 'UNCERTAIN']))).scalar_one_or_none()
 
     def consultation(self, organization, identifier):
         with self.engine.connect() as conn:

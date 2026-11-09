@@ -95,9 +95,15 @@ def policy_reason(policy: dict, *, search=False) -> str:
         if search:
             if type(policy.get("confirmed_free_remaining")) is not int or policy["confirmed_free_remaining"] <= 0:
                 return "saldo gratuito não confirmado"
+            # Padrão de 24 h. A liberação operacional pode ampliar a validade da
+            # conferência (no máximo 30 dias) quando a conta não tem meio de
+            # pagamento; o consumo desde a conferência continua limitado ao saldo.
+            hours = policy.get("balance_valid_hours", 24)
+            if type(hours) is not int or not 1 <= hours <= 720:
+                return "validade da confirmação de saldo deve ser de 1 a 720 horas"
             at = datetime.fromisoformat(policy["balance_verified_at"])
-            if at.tzinfo is None or not 0 <= (datetime.now(timezone.utc) - at).total_seconds() <= 86400:
-                return "saldo deve ter confirmação UTC com até 24 horas"
+            if at.tzinfo is None or not 0 <= (datetime.now(timezone.utc) - at).total_seconds() <= hours * 3600:
+                return "saldo deve ter confirmação UTC dentro da validade configurada"
     except (KeyError, ValueError, TypeError):
         return "verificação incompleta"
     return ""

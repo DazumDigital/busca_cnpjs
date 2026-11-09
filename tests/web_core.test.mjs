@@ -1,6 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validCnpj, mask, safeLink, groups} from '../app/web/static/core.mjs';
+import {validCnpj, mask, safeLink, groups, failureMessage} from '../app/web/static/core.mjs';
+
+test('falhas exibem a causa operacional sem ecoar códigos desconhecidos',()=>{
+  assert.match(failureMessage('CNPJ_NAO_ENCONTRADO'),/não identificada/);
+  assert.match(failureMessage('COTA_EXTERNA_ESGOTADA'),/Limite de pesquisas externas/);
+  assert.match(failureMessage('LIMITE_TEMPORARIO'),/temporariamente/);
+  assert.match(failureMessage('ETAPA_INTERROMPIDA'),/não foi repetida/);
+  for(const code of ['FALHA_TECNICA_PESQUISA','https://x.example/?key=1','__proto__','constructor',undefined]) {
+    assert.equal(failureMessage(code),'Falha técnica ao consultar as fontes externas. Nenhum token foi consumido.');
+  }
+  for(const code of ['CNPJ_NAO_ENCONTRADO','COTA_ESGOTADA','ACESSO_NEGADO','INTEGRACAO_NAO_VERIFICADA']) assert.match(failureMessage(code),/Nenhum token/);
+});
 
 test('máscara completa e incremental, preservando zeros',()=>{
   assert.equal(mask('00065589000106'),'00.065.589/0001-06');

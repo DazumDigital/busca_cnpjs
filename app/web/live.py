@@ -16,11 +16,12 @@ from app.models import ProviderError
 from app.services.importer import valid_cnpj
 from app.web.store import (external_control, external_requests, live_jobs, consultations,
     companies, organizations, batch_items, WebError, digest)
-from app.web.live_sources import execute_action, action_for, payload_for
+from app.web.live_sources import execute_action, action_for, payload_for, stop_websites
 
 
 PROVIDERS = ('serper', 'minhareceita', 'websites')
 WINDOWS = (('per_minute', 60), ('per_hour', 3600), ('per_day', 86400))
+MAX_TEMPORARY_RETRIES = 3
 
 
 def valid_policy(policy):
@@ -148,7 +149,18 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
             conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='UNCERTAIN',error='ETAPA_INTERROMPIDA',updated_at=now))
             return dict(status='UNCERTAIN',error='ETAPA_INTERROMPIDA')
         provider=action_for(state)
-        wait=quota_delay(conn,control,policy,provider,now)
+        try:
+            wait=quota_delay(conn,control,policy,provider,now)
+        except WebError as exc:
+            if provider!='websites' or exc.code!='COTA_EXTERNA_ESGOTADA':
+                raise
+            # Sem cota para validar páginas: conclui localmente com o cadastro e a
+            # busca já pagos, sem nova chamada e sem perder o crédito da Serper.
+            state=stop_websites(state)
+            result=payload_for(state)
+            conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(state=json.dumps(state,ensure_ascii=False),
+                status='DONE',step=job['step']+1,lease_until=0,result=json.dumps(result,ensure_ascii=False),error=None,updated_at=now))
+            return dict(status='DONE',result=result,error=None,phase='DONE',retry_after=0)
         if provider=='minhareceita':
             # Evita até a chamada cadastral quando a etapa Serper está sem orçamento.
             wait=max(wait,quota_delay(conn,control,policy,'serper',now))
@@ -160,7 +172,7 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
         conn.execute(insert(external_requests).values(id=str(uuid.uuid4()),provider=provider,started_at=now,outcome='RESERVADA',operation=operation))
         conn.execute(update(external_control).where(external_control.c.id=='global').values(lease_until=lease_until))
         conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='IN_FLIGHT',lease_until=lease_until,updated_at=now))
-    error=None; result=None;cooldown=0
+    error=None; result=None;cooldown=0;paused=False
     try:
         # One fixed API request or one protected website fetch, with an 8s
         # timeout per transport. The budget stays below maxDuration=30.
@@ -173,7 +185,12 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
         error=exc.code if isinstance(exc,ProviderError) else 'FALHA_TECNICA_PESQUISA'
         if isinstance(exc,ProviderError):cooldown=min(86400,max(0,exc.details.get('retry_after',0)))
         done=False
-        if state.get('company'):
+        # HTTP 429 means the provider refused before processing: keep the phase
+        # and wait for the cooldown, a bounded number of times, never in a loop.
+        if error=='LIMITE_TEMPORARIO' and state.get('temporary_retries',0)<MAX_TEMPORARY_RETRIES:
+            paused=True;cooldown=max(cooldown,60)
+            state=dict(state,temporary_retries=state.get('temporary_retries',0)+1)
+        elif state.get('company'):
             result=payload_for(state,partial=True)
     with store.transaction() as conn:
         control = conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().one()
@@ -191,11 +208,57 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
             deadlines=dict(policy.get('not_before',{}));deadlines[provider]=clock()+cooldown;policy['not_before']=deadlines
         conn.execute(update(external_requests).where(external_requests.c.operation==operation).values(outcome='FALHA' if error else 'SUCESSO'))
         conn.execute(update(external_control).where(external_control.c.id=='global').values(lease_until=0,policy=json.dumps(policy)))
+        status='READY' if paused else 'FAILED' if error else 'DONE' if done else 'READY'
         conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(state=json.dumps(state,ensure_ascii=False),
-            status='FAILED' if error else 'DONE' if done else 'READY',step=job['step']+1,lease_until=0,
-            result=json.dumps(result,ensure_ascii=False) if result else None,error=error,updated_at=clock()))
-    return dict(status='FAILED' if error else 'DONE' if done else 'READY',result=result,error=error,
-        phase=state['phase'],retry_after=0)
+            status=status,step=job['step']+1,lease_until=0,
+            result=json.dumps(result,ensure_ascii=False) if result else None,error=None if paused else error,updated_at=clock()))
+    if paused:
+        return dict(status='WAIT',retry_after=math.ceil(cooldown),phase=state['phase'])
+    return dict(status=status,result=result,error=error,phase=state['phase'],retry_after=0)
+
+
+def block(store):
+    """Desligamento imediato pelo banco, sem redeploy; reativar exige configure."""
+    with store.transaction() as conn:
+        control=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
+        if not control:
+            return False
+        policy=json.loads(control['policy']);policy['blocked']=True
+        conn.execute(update(external_control).where(external_control.c.id=='global').values(policy=json.dumps(policy)))
+        return True
+
+
+def external_status(store):
+    """Resumo auditável, sem hash de chave nem dados das empresas."""
+    with store.engine.connect() as conn:
+        control=conn.execute(select(external_control).where(external_control.c.id=='global')).mappings().first()
+        policy=json.loads(control['policy']) if control else None
+        if policy:
+            policy={k:v for k,v in policy.items() if k!='key_sha256'}
+        ledger=conn.execute(select(external_requests.c.provider,external_requests.c.outcome,func.count())
+            .group_by(external_requests.c.provider,external_requests.c.outcome)).all()
+        jobs=conn.execute(select(live_jobs.c.status,func.count()).group_by(live_jobs.c.status)).all()
+    return dict(politica=policy,lease_ativo=bool(control and control['lease_until']>time.time()),
+        livro_tecnico=[dict(provedor=p,resultado=o,quantidade=n) for p,o,n in ledger],
+        pesquisas=dict((s,n) for s,n in jobs))
+
+
+def release_job(store,cnpj,clock=time.time):
+    """Liberação administrativa, após revisar a auditoria, de uma pesquisa falha
+    ou incerta. Mantém a fase e o livro técnico; a próxima etapa é nova."""
+    with store.transaction() as conn:
+        control=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
+        if control and control['lease_until']>clock():
+            raise ValueError('Há uma etapa externa em execução')
+        job=conn.execute(select(live_jobs).where(live_jobs.c.cnpj==cnpj).with_for_update()).mappings().first()
+        if not job or job['status'] not in {'FAILED','UNCERTAIN'}:
+            raise ValueError('Não há pesquisa falha ou incerta para este CNPJ')
+        state=json.loads(job['state']);state.pop('temporary_retries',None)
+        # The step counter advances so a new reservation never reuses the
+        # operation id of the uncertain call.
+        conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='READY',error=None,result=None,
+            lease_until=0,step=job['step']+1,state=json.dumps(state,ensure_ascii=False),updated_at=clock()))
+        return dict(anterior=job['status'],erro=job['error'],fase=state['phase'])
 
 
 def process_consultation(store,user,identifier,key,runner=advance_job):
@@ -238,5 +301,5 @@ def process_consultation(store,user,identifier,key,runner=advance_job):
                     result=json.dumps(payload,ensure_ascii=False) if payload else None,finished_at=time.time()))
                 conn.execute(update(batch_items).where(batch_items.c.consultation_id==identifier).values(error_code=outcome.get('error') or 'FALHA_TECNICA_PESQUISA'))
     data=store.consultation(user['organization_id'],identifier)
-    data.update(etapa_pesquisa=outcome.get('phase'),retry_after=outcome.get('retry_after',0),erro=outcome.get('error'))
+    data.update(etapa_pesquisa=outcome.get('phase'),retry_after=outcome.get('retry_after',0),erro=outcome.get('error') or data.get('erro'))
     return data
