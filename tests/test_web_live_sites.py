@@ -22,6 +22,7 @@ from app.models import Company, ProviderError
 from app.services.validator import Page
 from app.web import live, live_sources, manage
 from app.web.store import companies, external_requests, live_jobs, external_control, organizations
+from app.web.store import charges as live_charges
 
 NEW = generated_cnpj(424242)
 ORG = 'dazumdigital'
@@ -292,6 +293,63 @@ def test_revalidate_sites_reuses_candidates_without_paid_calls(live_web, monkeyp
         assert db.execute(select(func.count()).select_from(companies).where(companies.c.cnpj == NEW)).scalar_one() == 2
     monkeypatch.setenv('WEB_DATABASE_URL', live_web[3].database_url)
     assert manage.main(['--env-file', str(tmp_path / 'absent.env'), 'revalidate-sites', NEW]) == 2
+
+
+def test_in_place_revalidation_reuses_consultation_without_new_token(live_web, monkeypatch, tmp_path):
+    # Reaproveita a consulta já cobrada: nada de nova organização, token, Serper ou cadastro.
+    base = 'https://www.acmeparafusos.com.br/'
+    pages = {}
+    calls = providers(monkeypatch, [base, f'https://cnpj.biz/{NEW}'], pages)
+    store = live_web[1]
+    identity, query = start(live_web)
+    first = run_until_done(store, identity, query['id'])
+    assert first['status'] == 'CONCLUIDA' and first['saldo']['consumidos'] == 1
+    assert first['resultado']['website_oficial'] is None and first['revalidacao_pendente'] is False
+    untouched = live.process_consultation(store, identity, query['id'], KEY,
+                                          lambda *a, **k: pytest.fail('sem revalidação autorizada não há etapa'))
+    assert untouched['resultado'] == first['resultado']
+    monkeypatch.setenv('WEB_DATABASE_URL', live_web[3].database_url)
+    monkeypatch.setenv('SERPER_API_KEY', KEY)
+    assert manage.main(['--env-file', str(tmp_path / 'absent.env'), 'revalidate-sites', NEW, '--confirmed-authorized']) == 0
+    assert live_web[0].get('/api/consultas/' + query['id']).json()['revalidacao_pendente'] is True
+    pages.update({base + 'robots.txt': Page(base + 'robots.txt', 404, {}, ''), base: Page(base, 200, {}, OFFICIAL_HTML)})
+    clock = Clock()
+    runner = lambda s, c, k, **kw: live.advance_job(s, c, k, clock=clock, **kw)
+    for _ in range(10):
+        data = live.process_consultation(store, identity, query['id'], KEY, runner)
+        if not data['revalidacao_pendente']:
+            break
+    assert data['status'] == 'CONCLUIDA' and data['resultado']['website_oficial']['url'] == base
+    assert data['saldo'] == dict(disponiveis=2468, consumidos=1, reservados=0, consultas_concluidas=1)
+    assert any('sem novo desconto de token' in r for r in data['resultado']['ressalvas'])
+    assert [c[0] for c in calls].count('serper') == 1 and [c[0] for c in calls].count('minhareceita') == 1
+    with store.engine.connect() as db:
+        saved = json.loads(db.execute(select(companies.c.payload).where(companies.c.cnpj == NEW)).scalar_one())
+        charges = db.execute(select(func.count()).select_from(live_charges)).scalar_one()
+    assert saved['website_oficial']['url'] == base and charges == 1
+
+
+def test_crawl_delay_is_per_host_not_global(live_web):
+    store = live_web[1]
+    now = time.time()
+    company = Company(NEW, legal_name='ACME LTDA').__dict__
+    for number, url in ((1, 'https://www.alfa.com.br/'), (2, 'https://beta.com.br/'), (3, 'https://alfa.com.br/contato')):
+        state = dict(phase='WEBSITE', company=company, queue=[url], sites=[], current_site=url, robots={}, created_at=now)
+        with store.transaction() as db:
+            db.execute(live_jobs.insert().values(cnpj=generated_cnpj(number), id=f'job-{number}', status='READY',
+                       state=json.dumps(state), step=0, lease_until=0, updated_at=now))
+
+    async def visit(cnpj, state, key):
+        return dict(state, crawl_delay=10)
+    step = lambda n: live.advance_job(store, generated_cnpj(n), KEY, executor=visit, clock=lambda: now, organization=ORG)
+    with store.transaction() as db:
+        policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
+        policy['allowed_cnpjs'] = None
+        db.execute(external_control.update().values(policy=json.dumps(policy)))
+    assert step(1)['status'] == 'READY'
+    assert step(2)['status'] == 'READY'  # outro host: sem espera global
+    third = step(3)  # mesmo host (alias www): respeita o crawl-delay
+    assert third['status'] == 'WAIT' and 1 <= third['retry_after'] <= 10
 
 
 def test_website_budget_is_bounded(monkeypatch):

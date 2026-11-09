@@ -164,7 +164,18 @@ class Store:
     def view(self, row, conn):
         return dict(id=row['id'], cnpj=row['cnpj'], status=row['status'], resultado=json.loads(row['result']) if row['result'] else None,
                     criado_em=row['created_at'], saldo=self.balance(row['organization_id'], conn),
-                    erro=self.failure_code(conn, row) if row['status'] == 'FALHOU' else None)
+                    erro=self.failure_code(conn, row) if row['status'] == 'FALHOU' else None,
+                    revalidacao_pendente=row['status'] == 'CONCLUIDA' and self.revalidation_pending(conn, row['cnpj']))
+
+    def revalidation_pending(self, conn, cnpj):
+        """Revalidação de sites autorizada pelo administrador e ainda não concluída."""
+        job = conn.execute(select(live_jobs.c.status, live_jobs.c.state).where(live_jobs.c.cnpj == cnpj)).first()
+        if not job or job[0] not in ('READY', 'IN_FLIGHT'):
+            return False
+        try:
+            return json.loads(job[1]).get('revalidation') is True
+        except (TypeError, ValueError):
+            return False
 
     def failure_code(self, conn, row):
         """Código operacional fixo da falha; nunca mensagens brutas de provedores."""

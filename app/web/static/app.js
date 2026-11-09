@@ -1,4 +1,4 @@
-import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage} from './core.mjs';
+import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage, needsProcessing, nextBatchItem} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const number = new Intl.NumberFormat('pt-BR');
@@ -113,12 +113,12 @@ async function showConsultation(data, focus=true) {
   // A reopened consultation replaces any message left by a previous one.
   $('search-error').textContent='';
   updateBalance(data.saldo);
-  const running=['NA_FILA','EM_PROCESSAMENTO'].includes(data.status);
+  const running=needsProcessing(data,state.external);
   $('progress-panel').hidden=!running;
   if(state.poll) clearTimeout(state.poll);
   if(running) {
     $('results').hidden=true;
-    $('progress-panel').querySelector('p').textContent=data.retry_after?`Aguardando limite gratuito: próxima verificação em ${data.retry_after}s.`:({CADASTRO:'Identificando a empresa na base cadastral.',BUSCA:'Pesquisando websites e referências.',WEBSITE:'Validando os candidatos com segurança.'})[data.etapa_pesquisa] || 'Pesquisa registrada. O progresso permanece salvo.';
+    $('progress-panel').querySelector('p').textContent=data.retry_after?`Aguardando o intervalo seguro entre acessos: próxima verificação em ${data.retry_after}s.`:data.status==='CONCLUIDA'?'Revalidando os sites já encontrados, sem nova busca paga e sem novo token.':({CADASTRO:'Identificando a empresa na base cadastral.',BUSCA:'Pesquisando websites e referências.',WEBSITE:'Validando os candidatos com segurança.'})[data.etapa_pesquisa] || 'Pesquisa registrada. O progresso permanece salvo.';
     if(state.external)state.poll=setTimeout(async()=>{
       try{const next=await api('/api/consultas/'+encodeURIComponent(data.id)+'/processar',{method:'POST'});await showConsultation(next,false);await history();}
       catch(error){$('search-error').textContent=error.message+' Reabra a consulta pelo histórico para retomar.';}
@@ -239,12 +239,18 @@ async function openBatch(id,resume=false) {
 async function runBatch() {
   if(state.batchLoopActive || !state.batch || !state.csrf) return;
   state.batchLoopActive=true;state.batchRunning=true;memorySet('dazum_batch_run',true);$('batch-process-error').textContent='';showBatch(state.batch);
+  const notBefore=new Map();
   try {
     while(state.batchRunning && state.csrf) {
-      const batch=state.batch,item=batch.itens.find(i=>['PENDENTE_LOTE','EM_PROCESSAMENTO'].includes(i.status));if(!item)break;
-      const data=await api(`/api/lotes/${encodeURIComponent(batch.id)}/itens/${encodeURIComponent(item.id)}/processar`,{method:'POST'});
+      const batch=state.batch,next=nextBatchItem(batch.itens,notBefore,Date.now());
+      if(!next.item) {
+        if(!next.wait)break;
+        // Every pending item is waiting: sleep in short slices so Pause stays responsive.
+        await new Promise(resolve=>setTimeout(resolve,Math.min(1000,next.wait)));continue;
+      }
+      const data=await api(`/api/lotes/${encodeURIComponent(batch.id)}/itens/${encodeURIComponent(next.item.id)}/processar`,{method:'POST'});
       if(!state.csrf)break;showBatch(data);
-      if(data.retry_after){const until=Date.now()+data.retry_after*1000;while(state.batchRunning && state.csrf && Date.now()<until)await new Promise(resolve=>setTimeout(resolve,Math.min(1000,until-Date.now())));}
+      if(data.retry_after)notBefore.set(next.item.id,Date.now()+data.retry_after*1000);
     }
   }catch(error){$('batch-process-error').textContent=error.message+' Use Retomar para recuperar os itens pendentes, sem desconto duplicado.';}
   finally {
