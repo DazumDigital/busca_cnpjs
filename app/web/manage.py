@@ -23,6 +23,7 @@ def main(argv=None):
     user = commands.add_parser('create-user'); user.add_argument('username')
     reset = commands.add_parser('reset-password'); reset.add_argument('username')
     imp = commands.add_parser('import'); imp.add_argument('source', type=Path)
+    external=commands.add_parser('configure-external');external.add_argument('manifest',type=Path);external.add_argument('--legacy-ledger',type=Path)
     commands.add_parser('balance')
     worker = commands.add_parser('work-one'); worker.add_argument('--authorize-external', action='store_true')
     cancel = commands.add_parser('cancel-job'); cancel.add_argument('identifier'); cancel.add_argument('--confirmed-worker-stopped', action='store_true')
@@ -49,6 +50,10 @@ def main(argv=None):
             print('Senha alterada; sessões anteriores revogadas.')
         elif args.command == 'import':
             print(json.dumps(import_consolidation(store, args.source), ensure_ascii=False))
+        elif args.command == 'configure-external':
+            from app.web.live import configure
+            configure(store,json.loads(args.manifest.read_text(encoding='utf-8')),args.legacy_ledger)
+            print('Política externa validada; consumo anterior preservado. Nenhuma chamada externa executada.')
         elif args.command == 'balance':
             print(json.dumps(store.balance('dazumdigital'), ensure_ascii=False))
         elif args.command == 'cancel-job':

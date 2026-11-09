@@ -49,6 +49,31 @@ import_records = Table('web_import_records', metadata,
 rates = Table('web_rate_limits', metadata,
     Column('key', String(160), primary_key=True), Column('started_at', Float, nullable=False), Column('count', Integer, nullable=False))
 
+batches = Table('web_batches', metadata,
+    Column('id', String(40), primary_key=True),
+    Column('organization_id', String(80), ForeignKey(organizations.c.id), nullable=False),
+    Column('user_id', String(40), ForeignKey(users.c.id), nullable=False),
+    Column('idempotency_key', String(80), nullable=False), Column('input_hash', String(64), nullable=False),
+    Column('input_json', Text, nullable=False), Column('created_at', Float, nullable=False),
+    UniqueConstraint('organization_id', 'idempotency_key'))
+batch_items = Table('web_batch_items', metadata,
+    Column('batch_id', String(40), ForeignKey(batches.c.id), primary_key=True),
+    Column('position', Integer, primary_key=True),
+    Column('consultation_id', String(40), ForeignKey(consultations.c.id), unique=True, nullable=False),
+    Column('error_code', String(60)), CheckConstraint('position >= 0 AND position < 15'))
+external_control = Table('web_external_control', metadata,
+    Column('id', String(30), primary_key=True), Column('policy', Text, nullable=False),
+    Column('lease_until', Float, nullable=False))
+external_requests = Table('web_external_requests', metadata,
+    Column('id', String(80), primary_key=True), Column('provider', String(30), nullable=False),
+    Column('started_at', Float, nullable=False), Column('outcome', String(40), nullable=False),
+    Column('http_status', Integer), Column('operation', String(120), unique=True, nullable=False))
+live_jobs = Table('web_live_jobs', metadata,
+    Column('cnpj', String(14), primary_key=True), Column('id', String(40), unique=True, nullable=False),
+    Column('status', String(30), nullable=False), Column('state', Text, nullable=False),
+    Column('step', Integer, nullable=False), Column('lease_until', Float, nullable=False),
+    Column('result', Text), Column('error', String(80)), Column('updated_at', Float, nullable=False))
+
 
 class WebError(Exception):
     def __init__(self, code, status=400):
@@ -164,7 +189,7 @@ class Store:
                 return self.view(old, conn)
             if org['initial_tokens'] - org['consumed'] - org['reserved'] <= 0:
                 raise WebError('SALDO_INSUFICIENTE', 402)
-            saved = conn.execute(select(companies.c.payload).where(companies.c.organization_id == org['id'], companies.c.cnpj == cnpj)).scalar_one_or_none()
+            saved = self.saved_payload(conn, org['id'], cnpj)
             if not saved and not (allow_external and external_authorized):
                 raise WebError('EMPRESA_NAO_PESQUISADA', 404)
             row = dict(id=str(uuid.uuid4()), organization_id=org['id'], user_id=user['id'], idempotency_key=key,
@@ -172,11 +197,19 @@ class Store:
             conn.execute(insert(consultations).values(**row))
             if saved:
                 payload = json.loads(saved)
+                payload['origem_resultado'] = 'HISTORICO'
+                saved = json.dumps(payload, ensure_ascii=False)
                 self.complete(conn, row, payload)
                 row.update(status='CONCLUIDA', result=saved)
             else:
                 conn.execute(update(organizations).where(organizations.c.id == org['id']).values(reserved=organizations.c.reserved+1))
             return self.view(row, conn)
+
+    def saved_payload(self, conn, organization, cnpj):
+        value = conn.execute(select(companies.c.payload).where(companies.c.organization_id == organization, companies.c.cnpj == cnpj)).scalar_one_or_none()
+        if value is None:
+            value = conn.execute(select(live_jobs.c.result).where(live_jobs.c.cnpj == cnpj, live_jobs.c.status == 'DONE')).scalar_one_or_none()
+        return value
 
     def claim(self, organization):
         with self.transaction() as conn:

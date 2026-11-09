@@ -1,8 +1,8 @@
-import {digits, mask, validCnpj, safeLink, groups} from './core.mjs';
+import {digits, mask, validCnpj, safeLink, groups, analyzeBatch} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const number = new Intl.NumberFormat('pt-BR');
-const state = {csrf:'', busy:false, external:false, result:null, filter:'todos', balance:null, poll:null};
+const state = {csrf:'', busy:false, external:false, result:null, filter:'todos', balance:null, poll:null, batch:null, batchRunning:false, batchLoopActive:false};
 const types = {BUSINESS_DIRECTORY:'Diretório empresarial', INSTITUTIONAL_THIRD_PARTY_DOCUMENT:'Documento institucional de terceiros',
   THIRD_PARTY_REFERENCE:'Página de referência', REFERENCE_PAGE:'Página de referência', SOCIAL_NETWORK:'Rede social',
   CONFIRMADO_AUTOMATICAMENTE:'Titularidade confirmada', VERIFICACAO_MANUAL_INFORMADA:'Verificação manual informada',
@@ -34,6 +34,7 @@ function signedOut() {
   state.csrf=''; $('login-panel').hidden=false; $('search-panel').hidden=true; $('logout').hidden=true;
   $('historico').hidden=true; $('results').hidden=true; $('progress-panel').hidden=true;
   $('balance').textContent='—'; $('consumed').textContent='—'; state.balance=null;
+  state.batchRunning=false; state.batch=null; $('batch-panel').hidden=true;
   if(state.poll) clearTimeout(state.poll);
 }
 function updateBalance(balance) {
@@ -42,7 +43,8 @@ function updateBalance(balance) {
   $('balance').textContent=number.format(balance.disponiveis); $('consumed').textContent=number.format(balance.consumidos);
   $('reservation').hidden=balance.reservados===0;
   if(changed) { const wallet=$('balance').closest('.wallet'); wallet.classList.remove('pulse'); requestAnimationFrame(()=>wallet.classList.add('pulse')); }
-  $('search-button').disabled=state.busy || balance.disponiveis<=0;
+  $('search-button').disabled=state.busy || state.batchLoopActive || balance.disponiveis<=0;
+  updateBatchInput();
   if(balance.disponiveis<=0 && !$('search-error').textContent) $('search-error').textContent='Você não possui tokens suficientes para realizar uma nova consulta.';
 }
 async function refreshBalance() { if(state.csrf) updateBalance(await api('/api/saldo')); }
@@ -50,13 +52,15 @@ async function authorized() {
   const session=await api('/api/sessao');
   if(!session.autenticado) {signedOut();return;}
   state.csrf=session.csrf; state.external=session.pesquisa_externa_disponivel;
+  $('batch-mode').textContent=state.external?'Resultados existentes são reaproveitados. Empresas novas são pesquisadas progressivamente, respeitando as cotas gratuitas. 1 token por consulta concluída.':'Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas. CNPJs sem registro não são cobrados.';
   $('login-panel').hidden=true; $('search-panel').hidden=false; $('logout').hidden=false; $('historico').hidden=false;
-  await refreshBalance(); await history();
+  await refreshBalance(); await history(); await batchHistory(); await restoreBatch();
   if(pending && validCnpj(pending.cnpj)) { $('cnpj').value=mask(pending.cnpj); await submit(pending.external); }
   else { const last=memoryGet('dazum_last'); if(last) await reopen(last, false); }
 }
 function busy(on) {
-  state.busy=on; $('search-button').disabled=on || state.balance<=0; $('cnpj').disabled=on;
+  state.busy=on; $('search-button').disabled=on || state.batchLoopActive || state.balance<=0; $('cnpj').disabled=on;
+  updateBatchInput();
   $('search-button').querySelector('.spinner').hidden=!on; $('search-button-label').textContent=on?'Consultando…':'Consultar CNPJ';
   $('search-form').setAttribute('aria-busy', String(on));
 }
@@ -85,7 +89,7 @@ $('cnpj').addEventListener('input', event=>{
 $('search-form').addEventListener('submit', event=>{event.preventDefault(); submit(false);});
 $('external-button').addEventListener('click',()=>submit(true));
 async function submit(external=false) {
-  if(state.busy) return;
+  if(state.busy || state.batchLoopActive) return;
   const cnpj=digits($('cnpj').value);
   if(!validCnpj(cnpj)) { $('search-error').textContent='O CNPJ informado é inválido. Confira os números e tente novamente.'; $('cnpj').setAttribute('aria-invalid','true'); $('cnpj').focus(); return; }
   if(!pending || pending.cnpj!==cnpj) pending={cnpj,key:crypto.randomUUID(),external};
@@ -108,8 +112,16 @@ async function showConsultation(data, focus=true) {
   const running=['NA_FILA','EM_PROCESSAMENTO'].includes(data.status);
   $('progress-panel').hidden=!running;
   if(state.poll) clearTimeout(state.poll);
-  if(running) { $('results').hidden=true; state.poll=setTimeout(()=>reopen(data.id,false),2500); return; }
-  if(data.status==='FALHOU') { $('search-error').textContent='Não foi possível concluir a consulta. Nenhum token foi consumido.'; return; }
+  if(running) {
+    $('results').hidden=true;
+    $('progress-panel').querySelector('p').textContent=data.retry_after?`Aguardando limite gratuito: próxima verificação em ${data.retry_after}s.`:({CADASTRO:'Identificando a empresa na base cadastral.',BUSCA:'Pesquisando websites e referências.',WEBSITE:'Validando os candidatos com segurança.'})[data.etapa_pesquisa] || 'Pesquisa registrada. O progresso permanece salvo.';
+    if(state.external)state.poll=setTimeout(async()=>{
+      try{const next=await api('/api/consultas/'+encodeURIComponent(data.id)+'/processar',{method:'POST'});await showConsultation(next,false);await history();}
+      catch(error){$('search-error').textContent=error.message+' Reabra a consulta pelo histórico para retomar.';}
+    },Math.max(1500,(data.retry_after || 0)*1000));
+    return;
+  }
+  if(data.status==='FALHOU') { $('search-error').textContent='Não foi possível concluir a pesquisa. Nenhum token foi consumido.'; if(!data.resultado)return; }
   if(data.resultado) { state.result=data.resultado; state.filter='todos'; render(data); if(focus) { $('results').focus({preventScroll:true}); $('results').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); } }
 }
 async function reopen(id, focus=true) {
@@ -117,6 +129,7 @@ async function reopen(id, focus=true) {
   catch(error) { if(error.status===404 && !focus) {memorySet('dazum_last',null);return;} $('search-error').textContent=error.message; }
 }
 function render(data) {
+  exportButtons($('individual-exports'),'/api/consultas/'+encodeURIComponent(data.id)+'/exportar');
   const result=state.result, company=result.empresa; $('results').hidden=false;
   $('company-card').replaceChildren();
   const monogram=node('div','company-monogram',(company.nome_fantasia || company.razao_social || 'E').trim()[0].toUpperCase());
@@ -127,7 +140,7 @@ function render(data) {
   if(company.situacao_cadastral) meta.append(node('span','',company.situacao_cadastral));
   details.append(meta); $('company-card').append(monogram,details,node('span','company-status','Pesquisa registrada'));
   const all=groups(result), total=all.reduce((sum,g)=>sum+g.items.length,0);
-  $('result-date').textContent='Consulta · '+new Date(data.criado_em*1000).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+  $('result-date').textContent=(result.origem_resultado==='PESQUISA_REAL'?'Pesquisa real registrada · ':'Resultado histórico · ')+new Date(data.criado_em*1000).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
   $('result-summary').textContent=total?`${total} ${total===1?'link identificado':'links identificados'} · Fontes organizadas por tipo de vínculo.`:'Nenhum resultado encontrado. Não identificamos sites ou referências para este CNPJ.';
   $('filters').replaceChildren();
   for(const filter of [{key:'todos',title:'Todos',count:total},...all.filter(g=>g.items.length).map(g=>({key:g.key,title:({oficial:'Oficial',manual:'Manual',possiveis:'Possíveis sites',sociais:'Redes sociais',referencias:'Referências'})[g.key],count:g.items.length}))]) {
@@ -146,6 +159,7 @@ function render(data) {
     const grid=node('div','links-grid'); group.items.forEach(item=>{ const card=renderLink(item,group.key); if(card) grid.append(card); }); section.append(title,grid); $('result-groups').append(section);
   }
   $('data-note').textContent=result.ressalvas.join(' ')+(company.pesquisado_em? ' Pesquisa de origem: '+new Date(company.pesquisado_em*1000).toLocaleDateString('pt-BR')+'.':'');
+  for(const source of result.fontes || [])$('data-note').append(node('span','',` Fonte: ${source.nome}.`));
 }
 function textEvidence(value) { return Array.isArray(value)?value.join(' · '):String(value || ''); }
 function renderLink(item,key) {
@@ -172,6 +186,96 @@ async function history() {
 $('new-query').addEventListener('click',()=>{$('cnpj').value=''; $('input-check').textContent=''; $('search-error').textContent=''; $('cnpj').setAttribute('aria-invalid','false'); $('cnpj').focus(); $('consulta').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
 let toastTimer;
 function toast(message) { clearTimeout(toastTimer); $('toast').textContent=message; $('toast').hidden=false; toastTimer=setTimeout(()=>$('toast').hidden=true,3000); }
+
+function updateBatchInput() {
+  const parsed=analyzeBatch($('batch-input').value);
+  $('batch-count').textContent=`Identificados: ${parsed.identificados} · Válidos: ${parsed.validos} · Inválidos: ${parsed.invalidos} · Duplicados: ${parsed.duplicados}`;
+  const insufficient=state.balance!==null && parsed.validos>state.balance;
+  $('batch-error').textContent=parsed.validos>15?'Informe no máximo 15 CNPJs válidos e distintos.':insufficient?`Este lote exige até ${parsed.validos} tokens. Seu saldo disponível é ${number.format(state.balance)}.`:parsed.invalidos || parsed.duplicados?'Entradas inválidas e duplicadas serão ignoradas, sem cobrança.':'';
+  $('batch-button').disabled=!state.csrf || state.busy || state.batchLoopActive || parsed.validos<1 || parsed.validos>15 || insufficient;
+  $('batch-input').disabled=state.batchLoopActive;
+}
+function exportButtons(container,path) {
+  container.replaceChildren();
+  for(const format of ['csv','xlsx']) {
+    const button=node('button','outline','Exportar '+format.toUpperCase()); button.type='button';
+    button.addEventListener('click',async()=>{
+      button.disabled=true;
+      try {
+        const response=await fetch(path+'?formato='+format,{credentials:'same-origin',cache:'no-store'});
+        if(!response.ok) {const error=await response.json();throw new Error(error.mensagem || 'Não foi possível exportar.');}
+        const url=URL.createObjectURL(await response.blob());const anchor=node('a');anchor.href=url;anchor.download='busca-cnpjs.'+format;
+        document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }catch(error){toast(error.message);}finally{button.disabled=false;}
+    });container.append(button);
+  }
+}
+function showBatch(data) {
+  state.batch=data;memorySet('dazum_batch_last',data.id);$('batch-panel').hidden=false;updateBalance(data.saldo);
+  const p=data.progresso;
+  $('batch-note').textContent=data.retry_after?`Aguardando a cota gratuita. Próxima tentativa em ${data.retry_after}s. Etapa: ${data.etapa_pesquisa || 'pesquisa'}.`:'O progresso fica salvo. Você pode sair e retomar os itens pendentes pelo histórico.';
+  $('batch-state').textContent=({PENDENTE:'Pendente',EM_ANDAMENTO:'Em andamento',CONCLUIDO:'Concluído',CONCLUIDO_COM_ERROS:'Concluído com pendências'})[data.status] || data.status;
+  $('batch-progress').textContent=`Total: ${p.total} · Concluídos: ${p.concluidos} · Em andamento: ${p.em_andamento} · Pendentes: ${p.pendentes} · Erros: ${p.erros} · Tokens consumidos: ${p.tokens_consumidos}`;
+  $('batch-progress-bar').max=p.total;$('batch-progress-bar').value=p.concluidos+p.erros;
+  $('batch-resume').hidden=!p.pendentes || state.batchLoopActive;$('batch-pause').hidden=!state.batchRunning;$('batch-cancel').hidden=!p.pendentes;
+  $('batch-items').replaceChildren();
+  const errors={EMPRESA_NAO_PESQUISADA:'Sem pesquisa armazenada; nenhum token consumido.',DADOS_ARMAZENADOS_INVALIDOS:'Dados inconsistentes; nenhum token consumido.',CANCELADA:'Encerrada; reserva liberada.'};
+  for(const item of data.itens) {
+    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)),node('p','',errors[item.erro] || (item.erro?'Falha técnica; nenhum token consumido.':({PENDENTE_LOTE:'Pendente',CONCLUIDA:'Concluída · 1 token',FALHOU:'Não concluída'})[item.status] || item.status)));
+    row.append(info);if(item.resultado){const button=node('button','','Ver resultado ↗');button.type='button';button.addEventListener('click',()=>reopen(item.id));row.append(button);}$('batch-items').append(row);
+  }
+  exportButtons($('batch-exports'),'/api/lotes/'+encodeURIComponent(data.id)+'/exportar');
+}
+async function openBatch(id,resume=false) {
+  if(state.batchLoopActive){$('batch-process-error').textContent='Aguarde a conclusão do item atual antes de abrir outro lote.';return;}
+  try {const data=await api('/api/lotes/'+encodeURIComponent(id));showBatch(data);if(resume) await runBatch();}
+  catch(error){$('batch-process-error').textContent=error.message;if(error.status===404)memorySet('dazum_batch_last',null);}
+}
+async function runBatch() {
+  if(state.batchLoopActive || !state.batch || !state.csrf) return;
+  state.batchLoopActive=true;state.batchRunning=true;memorySet('dazum_batch_run',true);$('batch-process-error').textContent='';showBatch(state.batch);
+  try {
+    while(state.batchRunning && state.csrf) {
+      const batch=state.batch,item=batch.itens.find(i=>['PENDENTE_LOTE','EM_PROCESSAMENTO'].includes(i.status));if(!item)break;
+      const data=await api(`/api/lotes/${encodeURIComponent(batch.id)}/itens/${encodeURIComponent(item.id)}/processar`,{method:'POST'});
+      if(!state.csrf)break;showBatch(data);
+      if(data.retry_after){const until=Date.now()+data.retry_after*1000;while(state.batchRunning && state.csrf && Date.now()<until)await new Promise(resolve=>setTimeout(resolve,Math.min(1000,until-Date.now())));}
+    }
+  }catch(error){$('batch-process-error').textContent=error.message+' Use Retomar para recuperar os itens pendentes, sem desconto duplicado.';}
+  finally {
+    state.batchLoopActive=false;state.batchRunning=false;memorySet('dazum_batch_run',false);if(state.csrf && state.batch){showBatch(state.batch);await batchHistory().catch(()=>{});await history().catch(()=>{});}
+  }
+}
+async function batchHistory() {
+  const entries=await api('/api/lotes');$('batch-history-list').replaceChildren();
+  if(!entries.length)$('batch-history-list').append(node('p','data-note','Seus lotes aparecerão aqui.'));
+  for(const entry of entries){const row=node('div','history-row'),info=node('div');info.append(node('span','history-cnpj',`${entry.progresso.total} empresas · ${entry.progresso.concluidos} concluídas`),node('p','',new Date(entry.criado_em*1000).toLocaleString('pt-BR')+` · ${entry.progresso.pendentes} pendentes`));const button=node('button','','Abrir lote ↗');button.type='button';button.addEventListener('click',()=>openBatch(entry.id));row.append(info,button);$('batch-history-list').append(row);}
+}
+async function restoreBatch() {
+  const draft=memoryGet('dazum_batch_pending');if(draft){$('batch-input').value=draft.value;await createBatch();return;}
+  const id=memoryGet('dazum_batch_last');if(id)await openBatch(id,memoryGet('dazum_batch_run')===true);
+}
+async function createBatch() {
+  if(state.batchLoopActive || state.busy)return;
+  const value=$('batch-input').value,parsed=analyzeBatch(value);
+  if(!parsed.validos || parsed.validos>15){updateBatchInput();return;}
+  let draft=memoryGet('dazum_batch_pending');if(!draft || draft.value!==value)draft={value,key:crypto.randomUUID()};
+  memorySet('dazum_batch_pending',draft);busy(true);$('batch-error').textContent='';
+  try {
+    const data=await api('/api/lotes',{method:'POST',headers:{'Idempotency-Key':draft.key},body:JSON.stringify({cnpjs:value})});
+    memorySet('dazum_batch_pending',null);showBatch(data);busy(false);await runBatch();
+  }catch(error){$('batch-error').textContent=error.message;if(error.status && error.status<500)memorySet('dazum_batch_pending',null);}
+  finally{busy(false);}
+}
+$('batch-input').addEventListener('input',updateBatchInput);
+$('batch-form').addEventListener('submit',event=>{event.preventDefault();createBatch();});
+$('batch-resume').addEventListener('click',()=>runBatch());
+$('batch-pause').addEventListener('click',()=>{state.batchRunning=false;memorySet('dazum_batch_run',false);if(state.batch)showBatch(state.batch);});
+$('batch-cancel').addEventListener('click',async()=>{
+  if(!state.batch)return;state.batchRunning=false;memorySet('dazum_batch_run',false);
+  try{const data=await api('/api/lotes/'+encodeURIComponent(state.batch.id)+'/cancelar',{method:'POST'});showBatch(data);await batchHistory();}
+  catch(error){$('batch-process-error').textContent=error.message;}
+});
 window.addEventListener('scroll',()=>$('header').classList.toggle('scrolled',scrollY>8),{passive:true});
 if('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
   const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target);}}),{threshold:.12}); document.querySelectorAll('.reveal').forEach(element=>observer.observe(element));

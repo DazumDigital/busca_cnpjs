@@ -1,6 +1,6 @@
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 
@@ -15,6 +15,7 @@ class WebSettings:
     external_enabled: bool = False
     session_hours: int = 8
     query_per_minute: int = 20
+    serper_key: str = field(default='', repr=False)
 
     def __post_init__(self):
         parts = urlsplit(self.origin)
@@ -129,6 +130,7 @@ class WebSettings:
             )
 
         return cls(
+            serper_key=os.getenv('SERPER_API_KEY', ''),
             database_url=database_url,
             origin=os.getenv(
                 'WEB_ORIGIN',
