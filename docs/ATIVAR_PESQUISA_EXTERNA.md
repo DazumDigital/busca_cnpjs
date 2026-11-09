@@ -38,6 +38,7 @@ Use `$py = 'C:\Cristiano\busca_cnpjs\outputs\cnpj-enrichment\.venv\Scripts\pytho
 | Saldo de uma organização | `& $py -m app.web.manage --env-file $envfile balance --org qa-serper-weg` |
 | Liberar pesquisa falha/incerta após revisar a auditoria | `& $py -m app.web.manage --env-file $envfile retry-job 84429695000111 --confirmed-reviewed` |
 | Desativar a conta de teste preservando consultas e auditoria | `& $py -m app.web.manage --env-file $envfile deactivate-user qa.piloto.weg` |
+| Refazer **só a validação de sites** de uma pesquisa concluída, com os candidatos já obtidos (sem Serper e sem cadastro; exige autorização) | `& $py -m app.web.manage --env-file $envfile revalidate-sites 84429695000111 --confirmed-authorized` |
 
 `block-external` grava `blocked: true` na política: nenhuma etapa externa nova é reservada, mesmo com `WEB_ENABLE_EXTERNAL=true`. Para voltar, é preciso rodar `configure-external` com um manifesto revisado. `retry-job` não apaga o livro técnico; a próxima etapa usa um novo identificador de operação e continua contando nas cotas.
 
@@ -48,6 +49,8 @@ Cada clique ou passo do lote executa **uma** etapa HTTP com no máximo uma chama
 1. **Cadastro** (Minha Receita, sem chave): razão social, nome fantasia, município, UF e situação cadastral. CNPJ ausente na base → `CNPJ_NAO_ENCONTRADO`, sem token.
 2. **Busca** (Serper, 1 crédito): nome + município + "site oficial", excluindo diretórios conhecidos. Somente as URLs são guardadas, nunca a SERP integral.
 3. **Validação de sites** (até 3 sites candidatos e 8 acessos por consulta, robots.txt respeitado, intervalo mínimo de 10 s): o site é oficial apenas com CNPJ exato, nome, titularidade em rodapé/página legal, marca no título e domínio compatível. Se o primeiro candidato falhar ou for de terceiro, o próximo é tentado.
+
+O `robots.txt` segue a RFC 9309: 200 é interpretado; 4xx (exceto 429) significa que não há regras e o acesso segue; 5xx encerra o candidato. O status HTTP de cada falha fica registrado na pesquisa e aparece no motivo exibido (ex.: "(HTTP 403)"). Proteções anti-robô de CDNs costumam bloquear IPs de datacenter como os da Vercel; nesses casos o candidato fica pendente, com o motivo, e nenhuma técnica de evasão é usada. Só domínios ou subdomínios com a marca da empresa aparecem como "Possíveis sites" quando não puderam ser validados; páginas de terceiros sem a marca não.
 
 Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do site, redirecionamentos) **não derrubam a consulta**: o resultado é concluído e salvo com o status `FALHA_VALIDACAO_SITE_OFICIAL` e o candidato aparece em "Possíveis sites" com o motivo. Isso consome 1 token, como qualquer consulta concluída (cadastro e busca foram entregues). Falhas no cadastro ou na busca continuam sem desconto. Se a cota total de websites do manifesto acabar no meio da validação, a consulta também é concluída localmente com o que já foi obtido, sem nova chamada.
 

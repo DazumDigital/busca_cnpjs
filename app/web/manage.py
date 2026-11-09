@@ -38,6 +38,7 @@ def main(argv=None):
     commands.add_parser('block-external')
     commands.add_parser('external-status')
     retry = commands.add_parser('retry-job'); retry.add_argument('cnpj'); retry.add_argument('--confirmed-reviewed', action='store_true')
+    sites = commands.add_parser('revalidate-sites'); sites.add_argument('cnpj'); sites.add_argument('--confirmed-authorized', action='store_true')
     balance = commands.add_parser('balance'); balance.add_argument('--org', default='dazumdigital')
     worker = commands.add_parser('work-one'); worker.add_argument('--authorize-external', action='store_true')
     cancel = commands.add_parser('cancel-job'); cancel.add_argument('identifier'); cancel.add_argument('--confirmed-worker-stopped', action='store_true')
@@ -72,6 +73,12 @@ def main(argv=None):
             from app.web.live import release_job
             from app.services.importer import normalize_cnpj
             print(json.dumps(release_job(store, normalize_cnpj(args.cnpj)), ensure_ascii=False))
+        elif args.command == 'revalidate-sites':
+            if not args.confirmed_authorized:
+                raise ValueError('Revalidar sites acessa a internet: confirme a autorização com --confirmed-authorized')
+            from app.web.live import restart_websites
+            from app.services.importer import normalize_cnpj
+            print(json.dumps(restart_websites(store, normalize_cnpj(args.cnpj)), ensure_ascii=False))
         elif args.command == 'reset-password':
             first = getpass.getpass('Nova senha (mínimo 12 caracteres): ')
             if first != getpass.getpass('Repita a senha: '):
