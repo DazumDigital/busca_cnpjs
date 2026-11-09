@@ -37,7 +37,7 @@ cnpj-enrichment = "app.main:main"
 include = ["app*"]
 
 [tool.setuptools.package-data]
-app = ["data/*.json"]
+"app.services" = ["third_party_rules.json"]
 "app.web" = [
     "static/*",
     "static/logos/*",

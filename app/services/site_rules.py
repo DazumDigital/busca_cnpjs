@@ -8,7 +8,7 @@ from urllib.parse import unquote, urlsplit
 
 from app.services.importer import valid_cnpj
 
-_raw = (Path(__file__).resolve().parents[1] / "data/third_party_rules.json").read_bytes()
+_raw = Path(__file__).with_name("third_party_rules.json").read_bytes()
 RULES = json.loads(_raw)
 RULES_VERSION = RULES["version"] + ":validation8:" + hashlib.sha256(_raw).hexdigest()[:12]
 THIRD_PARTIES = frozenset(RULES["domains"] + RULES.get('social_domains',[]) + RULES.get('directory_domains',[]))

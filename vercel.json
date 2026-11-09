@@ -4,6 +4,7 @@
   "functions": {
     "app/web/api.py": {
       "maxDuration": 30,
+      "includeFiles": "app/services/third_party_rules.json",
       "excludeFiles": "{.venv/**,var/**,data/**,build/**,dist/**,tests/**,docs/**,examples/**,.env*,provider_verification*.json,*.sqlite*,*.log}"
     }
   },

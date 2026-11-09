@@ -200,7 +200,7 @@ def create_app(settings=None, store=None):
         if config.external_enabled:
             with database().engine.connect() as conn:
                 saved=database().saved_payload(conn,user['organization_id'],cnpj)
-            if not saved:live.ensure_ready(database(),config.serper_key,user['organization_id'])
+            if not saved:live.ensure_ready(database(),config.serper_key,user['organization_id'],(cnpj,))
         return database().consult(user, cnpj, key, body.autorizar_pesquisa_externa or config.external_enabled, config.external_enabled)
 
     @app.get('/api/consultas')
@@ -253,8 +253,8 @@ def create_app(settings=None, store=None):
             from app.web.batch_input import validated_input
             parsed=validated_input(body.cnpjs)
             with database().engine.connect() as conn:
-                missing=any(not database().saved_payload(conn,user['organization_id'],cnpj) for cnpj in parsed['cnpjs'])
-            if missing:live.ensure_ready(database(),config.serper_key,user['organization_id'])
+                missing=[cnpj for cnpj in parsed['cnpjs'] if not database().saved_payload(conn,user['organization_id'],cnpj)]
+            if missing:live.ensure_ready(database(),config.serper_key,user['organization_id'],missing)
         return batch_service.create_batch(database(), user, body.cnpjs, key)
 
     @app.get('/api/lotes')

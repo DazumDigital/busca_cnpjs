@@ -18,7 +18,16 @@ def main():
     project = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
     assert project['tool']['vercel']['entrypoint'] == 'app.web.api:app'
     config = json.loads((ROOT / 'vercel.json').read_text(encoding='utf-8'))
-    assert config['functions']['app/web/api.py']['maxDuration'] == 30
+    function = config['functions']['app/web/api.py']
+    assert function['maxDuration'] == 30
+    rules_path = 'app/services/third_party_rules.json'
+    if function.get('includeFiles') != rules_path:
+        raise ValueError('Regras de classificação ausentes da configuração da função')
+    # Falha no build se a origem publicada omitir o recurso de runtime.
+    rules = json.loads((ROOT / rules_path).read_bytes())
+    if not rules['version'] or not rules['domains']:
+        raise ValueError('Regras de classificação inválidas')
+    manifest[rules_path] = hashlib.sha256((ROOT / rules_path).read_bytes()).hexdigest()
     assert config['git']['deploymentEnabled'] is False
     html = (static / 'index.html').read_text(encoding='utf-8')
     assert all(f'/assets/{name}' in html for name in ('tokens.css', 'styles.css', 'app.js', 'favicon.ico'))
@@ -30,7 +39,7 @@ def main():
     target.mkdir(exist_ok=True)
     (target / 'web-manifest.json').write_text(json.dumps(dict(entrypoint='app.web.api:app', assets=manifest,
         database_migrations=False, external_queries=0), indent=2), encoding='utf-8')
-    print(f'Build estático validado: {len(expected)} assets, entrypoint ASGI e configuração Vercel. Sem banco ou rede.')
+    print(f'Build estático validado: {len(expected)} assets, regras de classificação, entrypoint ASGI e configuração Vercel. Sem banco ou rede.')
     return 0
 
 
