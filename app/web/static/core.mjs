@@ -5,13 +5,26 @@ export function mask(value) {
     .replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
 }
 export function validCnpj(value) {
-  const raw = digits(value);
+  if (!/^[0-9./\-\s]+$/.test(String(value))) return false;
+  const raw = String(value).replace(/\D/g, '');
   if (raw.length !== 14 || /^(\d)\1{13}$/.test(raw)) return false;
   const weights = [[5,4,3,2,9,8,7,6,5,4,3,2], [6,5,4,3,2,9,8,7,6,5,4,3,2]];
   return weights.every((weight, index) => {
     const remainder = weight.reduce((sum, n, position) => sum + n * Number(raw[position]), 0) % 11;
     return Number(raw[12 + index]) === (remainder < 2 ? 0 : 11 - remainder);
   });
+}
+
+export function analyzeBatch(value) {
+  const entries=String(value).split(/[\n,;]+/).map(s=>s.trim()).filter(Boolean);
+  const cnpjs=[], invalid=[]; let duplicates=0;
+  for(const entry of entries) {
+    const cnpj=entry.replace(/[^0-9]/g,'');
+    if(!/^[0-9./\-\s]+$/.test(entry) || !validCnpj(cnpj)) invalid.push(entry);
+    else if(cnpjs.includes(cnpj)) duplicates++;
+    else cnpjs.push(cnpj);
+  }
+  return {identificados:entries.length,validos:cnpjs.length,invalidos:invalid.length,duplicados:duplicates,cnpjs};
 }
 export function safeLink(value) {
   try {

@@ -35,6 +35,25 @@
       <form id="search-form" method="post" action="/api/consultas" novalidate><div class="field"><label for="cnpj">CNPJ da empresa</label><div class="input-wrap"><span aria-hidden="true" class="search-icon">⌕</span><input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="00.000.000/0000-00" aria-describedby="search-help search-error" required><span class="input-check" id="input-check" aria-hidden="true"></span></div></div><button type="submit" class="primary search-button" id="search-button" disabled><span class="spinner" aria-hidden="true" hidden></span><span id="search-button-label">Consultar CNPJ</span><span class="arrow" aria-hidden="true">↗</span></button></form>
       <div class="search-bottom"><p id="search-help">Digite os 14 números. Você também pode colar o CNPJ formatado.</p><span id="reservation" hidden>Há tokens reservados para pesquisas em andamento.</span></div><p id="search-error" class="error" role="alert"></p>
       <div class="external-option" id="external-option" hidden><p>Este CNPJ ainda não possui uma pesquisa registrada. Uma nova pesquisa usa 1 token quando concluída.</p><button class="outline" id="external-button">Autorizar nova pesquisa</button></div>
+      <div class="batch-entry">
+        <div class="search-heading"><div><span class="step">PESQUISA EM LOTE</span><h2>Até 15 empresas de uma vez</h2></div></div>
+        <p class="data-note" id="batch-mode">Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas neste lote. CNPJs sem registro serão identificados sem cobrança.</p>
+        <form id="batch-form" method="post" action="/api/lotes" novalidate>
+          <div class="field"><label for="batch-input">Cole seus CNPJs</label><textarea id="batch-input" name="cnpjs" rows="5" maxlength="3500" placeholder="Um CNPJ por linha, vírgula ou ponto e vírgula" aria-describedby="batch-count batch-error"></textarea><p id="batch-count" class="data-note" aria-live="polite">Identificados: 0 · Válidos: 0 · Inválidos: 0 · Duplicados: 0</p></div>
+          <button class="primary search-button" id="batch-button" type="submit" disabled>Pesquisar CNPJs <span aria-hidden="true">↗</span></button>
+        </form>
+        <p id="batch-error" class="error" role="alert"></p>
+      </div>
+    </section>
+    <section class="batch-panel search-panel" id="batch-panel" hidden aria-labelledby="batch-title">
+      <div class="section-head"><div><span class="step">ACOMPANHAMENTO</span><h2 id="batch-title">Pesquisa em lote</h2></div><span class="data-note" id="batch-state"></span></div>
+      <p id="batch-progress" role="status" aria-live="polite"></p>
+      <progress id="batch-progress-bar" max="15" value="0" aria-label="Progresso do lote"></progress>
+      <p class="data-note" id="batch-note">O progresso fica salvo. Você pode sair e retomar os itens pendentes pelo histórico.</p>
+      <div class="batch-actions"><button class="outline" type="button" id="batch-resume">Retomar pendentes</button><button class="quiet" type="button" id="batch-pause" hidden>Pausar acompanhamento</button><button class="quiet" type="button" id="batch-cancel">Encerrar pendentes</button></div>
+      <p id="batch-process-error" class="error" role="alert"></p>
+      <div id="batch-items" class="history-list"></div>
+      <div class="batch-actions" id="batch-exports"></div>
     </section>
     <div class="progress-panel" id="progress-panel" role="status" hidden><span class="spinner" aria-hidden="true"></span><div><b>Pesquisa em andamento</b><p>Estamos consultando as informações desta empresa.</p></div></div>
     <section id="results" class="results" aria-labelledby="results-title" hidden tabindex="-1">
@@ -45,8 +64,9 @@
       <div id="result-groups"></div>
       <p class="data-note" id="data-note"></p>
       <button class="outline" id="new-query">Consultar outra empresa <span aria-hidden="true">↗</span></button>
+      <div class="batch-actions" id="individual-exports"></div>
     </section>
-    <section class="history-section" id="historico" aria-labelledby="history-title" hidden><div class="section-head"><div><span class="step">SUA ATIVIDADE</span><h2 id="history-title">Últimas consultas</h2></div><span class="muted">Reabrir não consome tokens</span></div><div id="history-list" class="history-list"></div></section>
+    <section class="history-section" id="historico" aria-labelledby="history-title" hidden><div class="section-head"><div><span class="step">SUA ATIVIDADE</span><h2 id="history-title">Últimas consultas</h2></div><span class="muted">Reabrir não consome tokens</span></div><div id="history-list" class="history-list"></div><h3>Seus lotes</h3><div id="batch-history-list" class="history-list"></div></section>
     <section class="guide reveal" id="como-funciona" aria-labelledby="guide-title"><div><span class="step">DA PESQUISA À DECISÃO</span><h2 id="guide-title">Cada fonte, no seu lugar.</h2><p>Mais contexto para avaliar a presença digital de uma empresa.</p></div><div class="guide-grid"><article><span class="guide-number">01</span><h3>Sites oficiais</h3><p>Identificação de titularidade com evidências. Confirmações automáticas e manuais ficam distintas.</p></article><article><span class="guide-number">02</span><h3>Presença digital</h3><p>Possíveis sites e redes sociais organizados para você revisar o vínculo com a empresa.</p></article><article><span class="guide-number">03</span><h3>Referências úteis</h3><p>Diretórios e fontes de terceiros, com confiança e ressalvas visíveis em cada resultado.</p></article></div></section>
   </main>
   <footer class="footer reveal"><div class="shell footer-top"><div><a class="brand" href="#consulta" aria-label="DazumDigital, voltar à consulta"><img src="/assets/logos/dazum-wordmark-cream.svg" width="184" height="36" alt="DazumDigital"></a><p>Informação organizada.<br>Conexões com mais contexto.</p></div><div><span class="eyebrow">PLATAFORMA</span><a href="#consulta">Consultar CNPJ <span aria-hidden="true">↗</span></a><a href="#como-funciona">Como os resultados são organizados <span aria-hidden="true">↗</span></a></div><div><span class="eyebrow">USO CONSCIENTE</span><p>Uma referência é uma fonte de informação.<br>Ela pode ser útil sem ser o site oficial.</p></div></div><div class="shell footer-bottom"><span>© DazumDigital · Consulta de CNPJ</span><span>Uso interno · Acesso autorizado</span></div></footer>
