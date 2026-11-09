@@ -1,6 +1,22 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validCnpj, mask, safeLink, groups, failureMessage} from '../app/web/static/core.mjs';
+import {validCnpj, mask, safeLink, groups, failureMessage, needsProcessing, nextBatchItem} from '../app/web/static/core.mjs';
+
+test('consulta concluída só volta a processar com revalidação pendente e pesquisa liberada',()=>{
+  assert.equal(needsProcessing({status:'NA_FILA'},false),true);
+  assert.equal(needsProcessing({status:'CONCLUIDA',revalidacao_pendente:true},true),true);
+  assert.equal(needsProcessing({status:'CONCLUIDA',revalidacao_pendente:true},false),false);
+  assert.equal(needsProcessing({status:'CONCLUIDA',revalidacao_pendente:false},true),false);
+  assert.equal(needsProcessing({status:'FALHOU',revalidacao_pendente:true},true),false);
+});
+test('lote em rodízio: item em espera não bloqueia os demais',()=>{
+  const items=[{id:'a',status:'EM_PROCESSAMENTO'},{id:'b',status:'PENDENTE_LOTE'},{id:'c',status:'CONCLUIDA'}];
+  const wait=new Map([['a',5000]]);
+  assert.equal(nextBatchItem(items,wait,1000).item.id,'b');
+  assert.deepEqual(nextBatchItem(items,new Map([['a',5000],['b',3000]]),1000),{item:null,wait:2000});
+  assert.equal(nextBatchItem(items,wait,6000).item.id,'a');
+  assert.deepEqual(nextBatchItem([{id:'c',status:'CONCLUIDA'},{id:'d',status:'FALHOU'}],wait,0),{item:null,wait:0});
+});
 
 test('falhas exibem a causa operacional sem ecoar códigos desconhecidos',()=>{
   assert.match(failureMessage('CNPJ_NAO_ENCONTRADO'),/não identificada/);

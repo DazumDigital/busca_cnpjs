@@ -129,6 +129,15 @@ def quota_delay(conn, control, policy, provider, now):
     return max(0, math.ceil(wait))
 
 
+def web_host(state):
+    """Host do próximo acesso de validação (robots ou página), sem o alias www."""
+    target=state.get('robots_url') or (state.get('queue') or [None])[0]
+    if not isinstance(target,str):
+        return None
+    from urllib.parse import urlsplit
+    return (urlsplit(target).hostname or '').removeprefix('www.') or None
+
+
 def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organization):
     with store.transaction() as conn:
         control=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
@@ -164,8 +173,11 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
         if provider=='minhareceita':
             # Evita até a chamada cadastral quando a etapa Serper está sem orçamento.
             wait=max(wait,quota_delay(conn,control,policy,'serper',now))
-        if provider=='websites' and state.get('last_web_at'):
-            wait=max(wait,math.ceil(state['last_web_at']+state.get('crawl_delay',10)-now))
+        # Crawl-delay vale por host (RFC 9309), não para todos os sites: pesquisas
+        # de empresas diferentes avançam em paralelo; o mesmo host espera.
+        host=web_host(state) if provider=='websites' else None
+        if host:
+            wait=max(wait,math.ceil(policy.get('host_not_before',{}).get(host,0)-now))
         if wait>0:return dict(status='WAIT',retry_after=wait,phase=state['phase'])
         operation=job['id']+':'+str(job['step'])
         lease_until = now + 40
@@ -203,7 +215,11 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
             return dict(status='UNCERTAIN', error='ETAPA_INTERROMPIDA')
         if error in {'COTA_ESGOTADA','ACESSO_NEGADO'}:
             policy['blocked']=True
-        if provider=='websites':cooldown=max(cooldown,state.get('crawl_delay',10))
+        if host:
+            moment=clock()
+            hosts={h:t for h,t in policy.get('host_not_before',{}).items() if type(t) in (int,float) and t>moment}
+            hosts[host]=moment+max(10,state.get('crawl_delay',10))
+            policy['host_not_before']=hosts
         if cooldown:
             deadlines=dict(policy.get('not_before',{}));deadlines[provider]=clock()+cooldown;policy['not_before']=deadlines
         conn.execute(update(external_requests).where(external_requests.c.operation==operation).values(outcome='FALHA' if error else 'SUCESSO'))
@@ -268,7 +284,7 @@ def restart_websites(store,cnpj,clock=time.time):
                      'robots_redirects','validations','site_validation','crawl_delay'):
             state.pop(name,None)
         state.update(phase='WEBSITE',queue=sites[:1],sites=sites[1:],current_site=sites[0],site_results=[],site_failures=[],
-                     web_calls=0,robots={},validations=[],redirects=[],website_runs=runs)
+                     web_calls=0,robots={},validations=[],redirects=[],website_runs=runs,revalidation=True)
         conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='READY',error=None,result=None,
             lease_until=0,step=job['step']+1,state=json.dumps(state,ensure_ascii=False),updated_at=clock()))
         return dict(sites=sites,rodadas_anteriores=len(runs))
@@ -292,13 +308,44 @@ def release_job(store,cnpj,clock=time.time):
         return dict(anterior=job['status'],erro=job['error'],fase=state['phase'])
 
 
+def revalidate_consultation(store,user,row,key,runner):
+    """Avança a revalidação de sites de uma consulta já concluída e cobrada.
+    Atualiza o resultado da própria consulta e da organização, sem novo token."""
+    organization=user['organization_id']
+    outcome=runner(store,row['cnpj'],key,organization=organization)
+    payload=outcome.get('result')
+    if outcome['status']=='DONE':
+        if not payload or payload.get('empresa',{}).get('cnpj')!=row['cnpj']:
+            raise WebError('ERRO_TECNICO',500)
+        payload=dict(payload,ressalvas=list(payload.get('ressalvas',[]))+[
+            'Sites revalidados com os links já encontrados, sem nova busca paga e sem novo desconto de token.'])
+        packed=json.dumps(payload,ensure_ascii=False)
+        with store.transaction() as conn:
+            store.lock_org(conn,organization)
+            current=conn.execute(select(consultations).where(consultations.c.id==row['id'])).mappings().one()
+            if current['status']=='CONCLUIDA':
+                store.upsert(conn,companies,dict(organization_id=organization,cnpj=row['cnpj'],payload=packed,source_hash=digest(packed)),
+                    ['organization_id','cnpj'],dict(payload=packed,source_hash=digest(packed)))
+                conn.execute(update(consultations).where(consultations.c.id==row['id']).values(result=packed))
+    data=store.consultation(organization,row['id'])
+    data.update(etapa_pesquisa=outcome.get('phase'),retry_after=outcome.get('retry_after',0),erro=outcome.get('error'))
+    return data
+
+
 def process_consultation(store,user,identifier,key,runner=advance_job):
     with store.engine.connect() as conn:
         row=conn.execute(select(consultations).where(consultations.c.id==identifier,
             consultations.c.organization_id==user['organization_id'],consultations.c.user_id==user['id'])).mappings().first()
         if not row:raise WebError('NAO_ENCONTRADO',404)
-        if row['status'] not in {'PENDENTE_LOTE','NA_FILA','EM_PROCESSAMENTO'}:return store.view(row,conn)
         saved=store.saved_payload(conn,user['organization_id'],row['cnpj'])
+        if row['status']=='CONCLUIDA' and saved and store.revalidation_pending(conn,row['cnpj']):
+            revalidate=True
+        elif row['status'] not in {'PENDENTE_LOTE','NA_FILA','EM_PROCESSAMENTO'}:
+            return store.view(row,conn)
+        else:
+            revalidate=False
+    if revalidate:
+        return revalidate_consultation(store,user,row,key,runner)
     if saved:
         with store.transaction() as conn:
             store.lock_org(conn,user['organization_id'])

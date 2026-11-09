@@ -49,6 +49,21 @@ const FAILURES = {
 };
 // Only fixed codes are mapped; unknown codes never echo provider text.
 export function failureMessage(code) { return Object.hasOwn(FAILURES, code) ? FAILURES[code] : TECHNICAL; }
+// A consultation keeps stepping while it is queued, or while an authorized
+// site revalidation (no new token) is pending for an already concluded one.
+export function needsProcessing(data, external) {
+  return ['NA_FILA','EM_PROCESSAMENTO'].includes(data.status)
+    || (data.status === 'CONCLUIDA' && external === true && data.revalidacao_pendente === true);
+}
+// Round-robin over pending batch items: an item waiting for its own delay does
+// not block the others. Returns the next ready item, or how long to wait.
+export function nextBatchItem(items, notBefore, now) {
+  const pending = items.filter(i => ['PENDENTE_LOTE','EM_PROCESSAMENTO'].includes(i.status));
+  if (!pending.length) return {item:null, wait:0};
+  const ready = pending.find(i => (notBefore.get(i.id) || 0) <= now);
+  if (ready) return {item:ready, wait:0};
+  return {item:null, wait:Math.max(1, Math.min(...pending.map(i => notBefore.get(i.id))) - now)};
+}
 export function groups(result) {
   return [
     {key:'oficial', title:'Site oficial', items:result.website_oficial ? [result.website_oficial] : []},

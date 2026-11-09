@@ -32,6 +32,7 @@ def main(argv=None):
     user = commands.add_parser('create-user'); user.add_argument('username'); user.add_argument('--org', default='dazumdigital')
     org = commands.add_parser('create-org'); org.add_argument('organization'); org.add_argument('--tokens', type=int, required=True)
     disable = commands.add_parser('deactivate-user'); disable.add_argument('username')
+    enable = commands.add_parser('activate-user'); enable.add_argument('username')
     reset = commands.add_parser('reset-password'); reset.add_argument('username')
     imp = commands.add_parser('import'); imp.add_argument('source', type=Path)
     external=commands.add_parser('configure-external');external.add_argument('manifest',type=Path);external.add_argument('--legacy-ledger',type=Path)
@@ -61,6 +62,11 @@ def main(argv=None):
                 conn.execute(update(users).where(users.c.id == user_id).values(active=0))
                 conn.execute(delete(sessions).where(sessions.c.user_id == user_id))
             print('Usuário desativado; sessões revogadas; consultas e auditoria preservadas.')
+        elif args.command == 'activate-user':
+            with store.transaction() as conn:
+                user_id = conn.execute(select(users.c.id).where(users.c.username == args.username.strip().lower())).scalar_one()
+                conn.execute(update(users).where(users.c.id == user_id).values(active=1))
+            print('Usuário reativado; organização e saldo inalterados.')
         elif args.command == 'block-external':
             from app.web.live import block
             print('Pesquisa externa bloqueada no banco.' if block(store) else 'Nenhuma política externa registrada.')
