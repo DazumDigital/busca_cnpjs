@@ -206,6 +206,94 @@ def test_exhausted_website_quota_concludes_without_losing_paid_search(live_web, 
                           .where(external_requests.c.provider == 'websites')).scalar_one() == 1
 
 
+def test_robots_4xx_means_no_robots_and_http_status_is_recorded(live_web, monkeypatch):
+    # RFC 9309: robots.txt 403 não proíbe; o bloqueio real aparece na página (HTTP 403).
+    base = 'https://www.acmeparafusos.com.br/'
+    calls = providers(monkeypatch, [base], {base + 'robots.txt': Page(base + 'robots.txt', 403, {}, ''),
+                                            base: Page(base, 403, {}, '')})
+    identity, query = start(live_web)
+    result = run_until_done(live_web[1], identity, query['id'])['resultado']
+    assert [c[1] for c in calls if c[0] == 'website'] == [base + 'robots.txt', base]
+    assert result['possiveis_sites'][0]['ressalvas'] == ['Validação não concluída: o site não respondeu ou recusou o acesso (HTTP 403).']
+    with live_web[1].engine.connect() as db:
+        state = json.loads(db.execute(select(live_jobs.c.state)).scalar_one())
+    assert state['site_failures'] == [dict(url=base, error='SITE_INACESSIVEL', http_status=403)]
+    assert state['robots_status'] == {'https://www.acmeparafusos.com.br': 403}
+
+
+def test_robots_5xx_stops_site_with_status(monkeypatch):
+    base = 'https://www.acmeparafusos.com.br/'
+    calls = []
+
+    async def fetch_one(url):
+        calls.append(url)
+        return Page(url, 500, {}, '')
+    monkeypatch.setattr(live_sources, 'fetch_one', fetch_one)
+    company = Company(NEW, legal_name=REGISTRY['razao_social'], trade_name='ACME PARAFUSOS')
+    state = dict(phase='WEBSITE', company=company.__dict__, queue=[base], sites=[], current_site=base, robots={}, created_at=time.time())
+    final = asyncio.run(live_sources.execute_action(NEW, state, KEY))
+    assert calls == [base + 'robots.txt'] and final['phase'] == 'DONE'
+    assert final['site_failures'] == [dict(url=base, error='ROBOTS_INDISPONIVEL', http_status=500)]
+
+
+def test_unbranded_third_party_pages_are_not_possible_sites(live_web, monkeypatch):
+    # Caso real do piloto WEG: página de associação de outra pessoa jurídica e
+    # portal de vagas. Só domínio ou subdomínio com a marca vira possível site.
+    providers(monkeypatch, ['https://www.acmeparafusos.com.br/', 'https://acme.gupy.io/',
+                            'https://www.iecee.org/members/member-bodies/acme-drives-controls-ltda'], {})
+    identity, query = start(live_web)
+    result = run_until_done(live_web[1], identity, query['id'])['resultado']
+    assert [p['url'] for p in result['possiveis_sites']] == ['https://www.acmeparafusos.com.br/', 'https://acme.gupy.io/']
+    assert result['status'] == 'FALHA_VALIDACAO_SITE_OFICIAL'
+
+
+def test_only_unbranded_failures_mean_no_official_candidate(live_web, monkeypatch):
+    providers(monkeypatch, ['https://www.iecee.org/members/member-bodies/acme-drives-controls-ltda'], {})
+    identity, query = start(live_web)
+    final = run_until_done(live_web[1], identity, query['id'])
+    assert final['status'] == 'CONCLUIDA'
+    assert final['resultado']['possiveis_sites'] == [] and final['resultado']['status'] == 'SEM_SITE_OFICIAL_CONFIRMADO'
+
+
+def test_revalidate_sites_reuses_candidates_without_paid_calls(live_web, monkeypatch, tmp_path):
+    from app.web.auth import create_user
+    from app.web.store import users
+    base = 'https://www.acmeparafusos.com.br/'
+    pages = {}
+    calls = providers(monkeypatch, [base, f'https://cnpj.biz/{NEW}'], pages)
+    store = live_web[1]
+    identity, query = start(live_web)
+    first = run_until_done(store, identity, query['id'])
+    assert first['resultado']['website_oficial'] is None
+    with pytest.raises(ValueError):
+        live.restart_websites(store, generated_cnpj(5))
+    # Uma organização de QA nova, sem o resultado anterior em cache.
+    manage.create_organization(store, 'qa-revalidacao', 1)
+    create_user(store, 'qa.revalidacao', 'Senha-fixture-123', organization='qa-revalidacao')
+    with store.transaction() as db:
+        policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
+    live.configure(store, dict(policy, allowed_organizations=['qa-revalidacao']), key=KEY)
+    restarted = live.restart_websites(store, NEW)
+    assert restarted == dict(sites=[base], rodadas_anteriores=1)
+    pages.update({base + 'robots.txt': Page(base + 'robots.txt', 404, {}, ''), base: Page(base, 200, {}, OFFICIAL_HTML)})
+    with store.engine.connect() as db:
+        qa = dict(db.execute(select(users).where(users.c.username == 'qa.revalidacao')).mappings().one())
+    second = store.consult(qa, NEW, uuid.uuid4().hex, True, True)
+    final = run_until_done(store, qa, second['id'])
+    assert final['resultado']['website_oficial']['url'] == base and final['saldo']['consumidos'] == 1
+    assert [c[0] for c in calls].count('serper') == 1 and [c[0] for c in calls].count('minhareceita') == 1
+    with store.engine.connect() as db:
+        state = json.loads(db.execute(select(live_jobs.c.state)).scalar_one())
+        providers_used = [r[0] for r in db.execute(select(external_requests.c.provider))]
+    assert len(state['website_runs']) == 1 and state['website_runs'][0]['site_type'] == 'VALIDATION_ERROR'
+    assert providers_used.count('serper') == 1 and providers_used.count('minhareceita') == 1
+    # A primeira organização mantém o resultado da primeira rodada, sem exclusão.
+    with store.engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(companies).where(companies.c.cnpj == NEW)).scalar_one() == 2
+    monkeypatch.setenv('WEB_DATABASE_URL', live_web[3].database_url)
+    assert manage.main(['--env-file', str(tmp_path / 'absent.env'), 'revalidate-sites', NEW]) == 2
+
+
 def test_website_budget_is_bounded(monkeypatch):
     calls = []
 

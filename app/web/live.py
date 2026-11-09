@@ -243,6 +243,37 @@ def external_status(store):
         pesquisas=dict((s,n) for s,n in jobs))
 
 
+def restart_websites(store,cnpj,clock=time.time):
+    """Refaz somente a validação de sites de uma pesquisa concluída, com os
+    candidatos já obtidos. Não reserva Serper nem cadastro; o histórico da
+    rodada anterior fica no estado e o livro técnico não é alterado."""
+    from app.models import Company
+    from app.web.live_sources import candidate_sites
+    with store.transaction() as conn:
+        control=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
+        if control and control['lease_until']>clock():
+            raise ValueError('Há uma etapa externa em execução')
+        job=conn.execute(select(live_jobs).where(live_jobs.c.cnpj==cnpj).with_for_update()).mappings().first()
+        if not job or job['status']!='DONE':
+            raise ValueError('Só uma pesquisa concluída pode ter os sites revalidados')
+        state=json.loads(job['state'])
+        if not state.get('company') or not state.get('searched_at'):
+            raise ValueError('Pesquisa sem busca registrada')
+        sites=candidate_sites(Company(**state['company']),cnpj,state.get('candidates',[]))
+        if not sites:
+            raise ValueError('Nenhum candidato a site para validar')
+        runs=state.get('website_runs',[])+[dict(finished_at=job['updated_at'],web_calls=state.get('web_calls',0),
+            site_failures=state.get('site_failures',[]),site_type=(state.get('validation') or {}).get('site_type'))]
+        for name in ('validation','site_results','site_failures','page_failures','robots','robots_status','robots_url',
+                     'robots_redirects','validations','site_validation','crawl_delay'):
+            state.pop(name,None)
+        state.update(phase='WEBSITE',queue=sites[:1],sites=sites[1:],current_site=sites[0],site_results=[],site_failures=[],
+                     web_calls=0,robots={},validations=[],redirects=[],website_runs=runs)
+        conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='READY',error=None,result=None,
+            lease_until=0,step=job['step']+1,state=json.dumps(state,ensure_ascii=False),updated_at=clock()))
+        return dict(sites=sites,rodadas_anteriores=len(runs))
+
+
 def release_job(store,cnpj,clock=time.time):
     """Liberação administrativa, após revisar a auditoria, de uma pesquisa falha
     ou incerta. Mantém a fase e o livro técnico; a próxima etapa é nova."""

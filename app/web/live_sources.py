@@ -13,7 +13,7 @@ from app.models import Company, Validation, ProviderError
 from app.security import tls_context
 from app.services.importer import normalize_cnpj
 from app.services.search_queries import queries_for
-from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match
+from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match, tenant_brand_match
 from app.services.site_outcome import public_validation, result_status
 from app.services.validator import SafeFetcher, classify, same_site, safe_url, VisibleText, tenant_identity_evidence, USER_AGENT
 from app.services.references import useful_references
@@ -41,8 +41,15 @@ for _code in ('LOOP_REDIRECIONAMENTO', 'LOOP_REDIRECIONAMENTO_ROBOTS', 'REDIRECI
     SITE_REASONS[_code] = 'o site apresenta redirecionamentos inválidos ou em excesso'
 
 
-def site_reason(code):
-    return SITE_REASONS.get(code, 'falha técnica na verificação do site')
+def site_reason(code, http_status=None):
+    reason = SITE_REASONS.get(code, 'falha técnica na verificação do site')
+    return reason + (f' (HTTP {http_status})' if type(http_status) is int else '')
+
+
+def brand_site(company, url):
+    """Domínio ou subdomínio (tenant) com a marca. Só indício: nunca confirma vínculo."""
+    host = urlsplit(url).hostname or ''
+    return domain_brand_match(company, host) or tenant_brand_match(company, host)
 
 
 async def provider_json(method, url, *, key='', payload=None):
@@ -86,10 +93,9 @@ def payload_for(state, partial=False):
                 social_candidates=candidate_groups(urls)['social_networks'])
     payload=public_result(record,company.__dict__,result.to_dict(),refs)
     payload['origem_resultado']='PESQUISA_REAL'
-    failures={f['url']:f['error'] for f in state.get('site_failures',[])}
     for item in payload['possiveis_sites']:
-        failed=next((code for url,code in failures.items() if same_site(url,item['url'])),None)
-        if failed:item['ressalvas']=['Validação não concluída: '+site_reason(failed)+'.']
+        failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],item['url'])),None)
+        if failed:item['ressalvas']=['Validação não concluída: '+site_reason(failed['error'],failed.get('http_status'))+'.']
     payload['possiveis_sites'].extend(other_sites(company,state,payload))
     payload['fontes']=[dict(tipo='CADASTRO',nome='Minha Receita — dados públicos da Receita Federal',
         url='https://minhareceita.org/'+company.cnpj,consultado_em=state['created_at'])]
@@ -116,18 +122,22 @@ def other_sites(company,state,payload):
     shown=[i['url'] for i in payload['possiveis_sites']]+([payload['website_oficial']['url']] if payload['website_oficial'] else [])
     rejected=[v.get('website','') for v in state.get('site_results',[]) if v.get('site_type') in {'THIRD_PARTY','CNPJ_DIVERGENTE'}]
     visited={v.get('website',''):v for v in state.get('site_results',[]) if v.get('website')}
-    failures={f['url']:f['error'] for f in state.get('site_failures',[])}
     extra=[]
     for url in candidate_sites(company,company.cnpj,state.get('candidates',[]),limit=4):
         if any(same_site(url,u) for u in shown+rejected if u):continue
-        failed=next((code for u,code in failures.items() if same_site(u,url)),None)
+        failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],url)),None)
         seen=next((v for u,v in visited.items() if same_site(u,url)),None)
-        if failed:
+        # Páginas de terceiros sem a marca (associações, catálogos) não viram
+        # "possível site" só por terem falhado ou não terem sido visitadas.
+        if seen and (seen.get('confidence')=='MEDIA' or brand_site(company,url)):
+            item=link(seen['website'],'POSSIVEL_SITE',seen.get('confidence') if seen.get('confidence')=='MEDIA' else 'BAIXA',
+                      'Página acessada; as evidências não confirmam a titularidade.')
+        elif not brand_site(company,url):
+            continue
+        elif failed:
             item=link(url,'POSSIVEL_SITE','PENDENTE','Encontrado na pesquisa; a validação técnica não pôde ser concluída.',
-                      ressalvas=['Validação não concluída: '+site_reason(failed)+'.'])
-        elif seen:
-            item=link(seen['website'],'POSSIVEL_SITE','BAIXA','Página acessada; as evidências não confirmam a titularidade.')
-        elif domain_brand_match(company,urlsplit(url).hostname or ''):
+                      ressalvas=['Validação não concluída: '+site_reason(failed['error'],failed.get('http_status'))+'.'])
+        elif not seen:
             item=link(url,'POSSIVEL_SITE','NAO_CONFIRMADO','Domínio compatível com o nome da empresa; não visitado nesta consulta.')
         else:
             continue
@@ -202,7 +212,8 @@ async def execute_action(cnpj, state, key):
         try:
             await website_step(company,cnpj,state)
         except ProviderError as exc:
-            page_failed(state,exc.code)
+            status=exc.details.get('http_status')
+            page_failed(state,exc.code,status if type(status) is int else None)
         except ValueError:
             # UnsafeURL é ValueError; nenhuma mensagem bruta (URL/IP) é persistida.
             page_failed(state,'URL_INSEGURA')
@@ -223,12 +234,14 @@ def best_site(state):
     return max(usable,key=quality) if usable else None
 
 
-def close_site(state,failure=None):
+def close_site(state,failure=None,http_status=None):
     """Encerra o site atual, registrando a validação obtida ou a falha técnica."""
     if state.get('site_validation'):
         state['site_results']=state.get('site_results',[])+[state['site_validation']]
     elif failure and state.get('current_site'):
-        state['site_failures']=state.get('site_failures',[])+[dict(url=state['current_site'],error=failure)]
+        record=dict(url=state['current_site'],error=failure)
+        if http_status:record['http_status']=http_status
+        state['site_failures']=state.get('site_failures',[])+[record]
     state.update(site_validation=None,validations=[],queue=[],redirects=[],robots_url=None,robots_redirects=[])
     best=best_site(state)
     remaining=list(state.get('sites',[]))
@@ -252,12 +265,18 @@ def finish_websites(state):
         state['site_results']=state.get('site_results',[])+[state['site_validation']]
     best=best_site(state)
     failures=state.get('site_failures',[])
+    company=Company(**state['company'])
+    branded=[f for f in failures if brand_site(company,f['url'])]
     if best:
         final=best
-    elif failures:
+    elif branded:
         final=Validation(confidence='PENDENTE',rules_version=RULES_VERSION,site_type='VALIDATION_ERROR',
-            signals={'technical_errors':[f['error'] for f in failures],'candidate_url':failures[0]['url']},
+            signals={'technical_errors':[f['error'] for f in failures],'candidate_url':branded[0]['url']},
             evidence=['Falha técnica ao validar candidato; vínculo não avaliado']+[f['error'] for f in failures]).to_dict()
+    elif failures:
+        # Só páginas sem a marca falharam: não há candidato a site oficial a revisar.
+        final=Validation(rules_version=RULES_VERSION,evidence=['SEM_SITE_OFICIAL_CONFIRMADO']+[f['error'] for f in failures],
+            signals={'technical_errors':[f['error'] for f in failures]}).to_dict()
     elif state.get('site_results'):
         final=state['site_results'][0]
     else:
@@ -266,7 +285,7 @@ def finish_websites(state):
     return state
 
 
-def page_failed(state,code):
+def page_failed(state,code,http_status=None):
     """Página secundária falha sem perder o site; a inicial encerra só o candidato."""
     if code=='TERCEIRO' and not state.get('validations'):
         rejected=Validation(website=state.get('current_site') or '',site_type='THIRD_PARTY',rules_version=RULES_VERSION,
@@ -274,10 +293,12 @@ def page_failed(state,code):
         state['site_validation']=rejected.to_dict()
         return close_site(state)
     if state.get('validations'):
-        state['page_failures']=state.get('page_failures',[])+[dict(url=(state.get('queue') or [''])[0],error=code)]
+        failure=dict(url=(state.get('queue') or [''])[0],error=code)
+        if http_status:failure['http_status']=http_status
+        state['page_failures']=state.get('page_failures',[])+[failure]
         state.update(queue=state['queue'][1:],redirects=[],robots_url=None,robots_redirects=[])
         return state if state['queue'] else close_site(state)
-    return close_site(state,code)
+    return close_site(state,code,http_status)
 
 
 async def website_step(company,cnpj,state):
@@ -299,7 +320,12 @@ async def website_step(company,cnpj,state):
             destination=safe_url(urljoin(robots_url,page.headers.get('location','')))[0]
             if len(chain)>=5 or destination in chain:raise ProviderError('LOOP_REDIRECIONAMENTO_ROBOTS')
             state.update(robots_url=destination,robots_redirects=chain+[robots_url]);return state
-        if page.status not in {200,404,410}:raise ProviderError('ROBOTS_INDISPONIVEL')
+        # RFC 9309 §2.3.1.3: 4xx (exceto 429, tratado acima) significa robots.txt
+        # indisponível e não proíbe o acesso; 5xx significa inacessível.
+        if not (page.status==200 or 400<=page.status<500):
+            raise ProviderError('ROBOTS_INDISPONIVEL',details={'http_status':page.status})
+        if page.status!=200:
+            state['robots_status']=dict(state.get('robots_status',{}),**{origin:page.status})
         lines = page.text.splitlines() if page.status == 200 else []
         if len(lines) > 2000 or any(len(line) > 1000 for line in lines):
             raise ProviderError('ROBOTS_INDISPONIVEL')
@@ -321,7 +347,7 @@ async def website_step(company,cnpj,state):
         if url_reason(destination,cnpj):raise ProviderError('TERCEIRO')
         state.update(queue=[destination]+state['queue'][1:],redirects=chain+[dict(url=clean,status=page.status,destination=destination)])
         return state
-    if page.status!=200:raise ProviderError('SITE_INACESSIVEL')
+    if page.status!=200:raise ProviderError('SITE_INACESSIVEL',details={'http_status':page.status})
     page.redirect_chain=state.get('redirects',[])
     result,validations=merged_validation(company,state,classify(company,page))
     queue=state['queue'][1:]
