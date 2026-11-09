@@ -1,6 +1,5 @@
 """Administração local explícita. Nunca recebe senha pela linha de comando."""
 import argparse
-import asyncio
 import getpass
 import json
 import os
@@ -12,7 +11,7 @@ from sqlalchemy import select, update, delete
 from app.web.auth import create_user, password_hash
 from app.web.config import WebSettings
 from app.web.migrate import import_consolidation
-from app.web.store import Store, users, sessions
+from app.web.store import Store, users, sessions, consultations
 
 
 def main(argv=None):
@@ -52,7 +51,7 @@ def main(argv=None):
             print(json.dumps(import_consolidation(store, args.source), ensure_ascii=False))
         elif args.command == 'configure-external':
             from app.web.live import configure
-            configure(store,json.loads(args.manifest.read_text(encoding='utf-8')),args.legacy_ledger)
+            configure(store,json.loads(args.manifest.read_text(encoding='utf-8')),args.legacy_ledger,key=config.serper_key)
             print('Política externa validada; consumo anterior preservado. Nenhuma chamada externa executada.')
         elif args.command == 'balance':
             print(json.dumps(store.balance('dazumdigital'), ensure_ascii=False))
@@ -63,16 +62,15 @@ def main(argv=None):
         elif args.command == 'work-one':
             if os.getenv('VERCEL') or not config.external_enabled or not args.authorize_external:
                 raise ValueError('Executor apenas local, com WEB_ENABLE_EXTERNAL=true e --authorize-external')
-            job = store.claim('dazumdigital')
+            with store.engine.connect() as conn:
+                job = conn.execute(select(consultations).where(
+                    consultations.c.organization_id == 'dazumdigital', consultations.c.status == 'NA_FILA')
+                    .order_by(consultations.c.created_at).limit(1)).mappings().first()
             if job:
-                from app.web.engine import research_one
-                try:
-                    payload = asyncio.run(research_one(job['cnpj']))
-                except Exception as error:
-                    store.finish_job(job['id'])
-                    print('Pesquisa falhou; reserva liberada. Tipo: ' + type(error).__name__)
-                    return 2
-                store.finish_job(job['id'], payload); print('Consulta concluída: ' + job['id'])
+                from app.web.live import process_consultation
+                identity = {'id':job['user_id'],'organization_id':job['organization_id']}
+                result = process_consultation(store,identity,job['id'],config.serper_key)
+                print('Etapa registrada: ' + result['status'])
             else:
                 print('Nenhuma consulta aguardando.')
         return 0

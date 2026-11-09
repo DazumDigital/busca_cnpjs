@@ -5,82 +5,134 @@ após reserva nunca são repetidas automaticamente, pois o provedor pode tê-las
 recebido. Não há threads de trabalho duráveis ou fila em memória.
 """
 import asyncio
+import hmac
 import json
 import math
 import time
 import uuid
-from sqlalchemy import select, insert, update
+from sqlalchemy import case, func, select, insert, update
 from app.config import policy_reason
 from app.models import ProviderError
+from app.services.importer import valid_cnpj
 from app.web.store import (external_control, external_requests, live_jobs, consultations,
     companies, organizations, batch_items, WebError, digest)
 from app.web.live_sources import execute_action, action_for, payload_for
 
 
-def checked_policy(control, key):
-    if not control or not key:
-        raise WebError('INTEGRACAO_NAO_VERIFICADA',503)
-    policy=json.loads(control['policy'])
-    if policy_reason(policy['serper'],search=True) or policy.get('blocked'):
-        raise WebError('INTEGRACAO_NAO_VERIFICADA',503)
+PROVIDERS = ('serper', 'minhareceita', 'websites')
+WINDOWS = (('per_minute', 60), ('per_hour', 3600), ('per_day', 86400))
+
+
+def valid_policy(policy):
+    if not isinstance(policy, dict):
+        return False
+    orgs = policy.get('allowed_organizations')
+    cnpjs = policy.get('allowed_cnpjs')
+    if not isinstance(orgs, list) or not orgs or not all(isinstance(o, str) and o.strip() == o and o for o in orgs):
+        return False
+    if cnpjs is not None and (not isinstance(cnpjs, list) or not cnpjs or
+            not all(isinstance(c, str) and len(c) == 14 and c.isascii() and c.isdecimal() and valid_cnpj(c) for c in cnpjs)):
+        return False
+    deadlines = policy.get('not_before', {})
+    if not isinstance(deadlines, dict) or any(
+            name not in PROVIDERS or type(t) not in (int, float) or not math.isfinite(t) or t < 0
+            for name, t in deadlines.items()):
+        return False
+    for provider in PROVIDERS:
+        limits = policy.get(provider)
+        if not isinstance(limits, dict):
+            return False
+        if any(type(limits.get(k)) is not int or limits[k] <= 0 for k in ('max_requests', *(k for k, _ in WINDOWS))):
+            return False
+        interval = limits.get('min_interval', 0)
+        if type(interval) not in (int, float) or not math.isfinite(interval) or not 0 <= interval <= 86400:
+            return False
+    try:
+        return not policy_reason(policy['serper'], search=True)
+    except AttributeError:
+        return False
+
+
+def checked_policy(control, key, organization=None, cnpjs=()):
+    if not control or not key.strip():
+        raise WebError('INTEGRACAO_NAO_VERIFICADA', 503)
+    try:
+        policy = json.loads(control['policy'])
+    except (TypeError, ValueError):
+        raise WebError('INTEGRACAO_NAO_VERIFICADA', 503) from None
+    if (not valid_policy(policy) or policy.get('blocked') or
+            not isinstance(policy.get('key_sha256'), str) or
+            not hmac.compare_digest(policy['key_sha256'].encode(), digest(key).encode()) or
+            organization not in policy['allowed_organizations'] or
+            ('allowed_cnpjs' in policy and policy['allowed_cnpjs'] is not None and
+             any(cnpj not in policy['allowed_cnpjs'] for cnpj in cnpjs))):
+        raise WebError('INTEGRACAO_NAO_VERIFICADA', 503)
     return policy
 
 
-def ensure_ready(store,key,organization=None):
+def ensure_ready(store, key, organization, cnpjs=()):
     with store.engine.connect() as conn:
-        row=conn.execute(select(external_control).where(external_control.c.id=='global')).mappings().first()
-        policy=checked_policy(row,key)
-        if policy.get('allowed_organizations') and organization not in policy['allowed_organizations']:
-            raise WebError('INTEGRACAO_NAO_VERIFICADA',503)
-        return policy
+        row = conn.execute(select(external_control).where(external_control.c.id == 'global')).mappings().first()
+        return checked_policy(row, key, organization, cnpjs)
 
 
-def configure(store,policy,legacy=None):
-    """Ação administrativa explícita. Não zera reservas ou consumo existentes."""
-    if policy_reason(policy.get('serper',{}),search=True):
-        raise ValueError('Confirmação gratuita inválida ou expirada')
-    for name in ['minhareceita','websites']:
-        p=policy[name]
-        if any(type(p.get(k)) is not int or p[k]<=0 for k in ['max_requests','per_minute','per_hour','per_day']):
-            raise ValueError('Limites de provedor inválidos')
-    seed=[]
+def configure(store, policy, legacy=None, *, key):
+    """Confirma a chave e a política sem zerar o histórico de consumo."""
+    if not key.strip() or not valid_policy(policy):
+        raise ValueError('Chave, escopo ou confirmação de cotas inválidos')
+    policy = dict(policy, key_sha256=digest(key))
+    seed = []
     if legacy:
         import sqlite3
         from pathlib import Path
-        with sqlite3.connect('file:'+Path(legacy).resolve().as_posix()+'?mode=ro',uri=True) as db:
-            seed=list(db.execute('SELECT id,provider,started_at,outcome,http_status FROM requests'))
+        with sqlite3.connect(Path(legacy).resolve().as_uri() + '?mode=ro', uri=True) as db:
+            seed = list(db.execute('SELECT id,provider,started_at,outcome,http_status FROM requests'))
     with store.transaction() as conn:
-        for identifier,provider,started,outcome,status in seed:
-            name=f'poc_sqlite:{provider}:{identifier}'
-            store.upsert(conn,external_requests,dict(id=name,provider=provider,started_at=started,outcome=outcome,http_status=status,operation=name),['id'])
-        previous=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
-        if previous and previous['lease_until']>time.time():raise ValueError('Há uma etapa externa em execução')
-        store.upsert(conn,external_control,dict(id='global',policy=json.dumps(policy),lease_until=0),['id'],dict(policy=json.dumps(policy)))
+        store.upsert(conn, external_control, dict(id='global', policy=json.dumps(policy), lease_until=0), ['id'])
+        control = conn.execute(select(external_control).where(external_control.c.id == 'global').with_for_update()).mappings().one()
+        if control['lease_until'] > time.time():
+            raise ValueError('Há uma etapa externa em execução')
+        for identifier, provider, started, outcome, status in seed:
+            name = f'poc_sqlite:{provider}:{identifier}'
+            store.upsert(conn, external_requests, dict(id=name, provider=provider, started_at=started,
+                outcome=outcome, http_status=status, operation=name), ['id'])
+        previous = json.loads(control['policy'])
+        # A reconfiguração não pode apagar um Retry-After ainda vigente.
+        deadlines = dict(policy.get('not_before', {}))
+        for provider, deadline in previous.get('not_before', {}).items():
+            deadlines[provider] = max(deadlines.get(provider, 0), deadline)
+        policy['not_before'] = deadlines
+        conn.execute(update(external_control).where(external_control.c.id == 'global').values(policy=json.dumps(policy)))
 
 
 def quota_delay(conn, control, policy, provider, now):
-    p=policy[provider]
-    rows=conn.execute(select(external_requests.c.started_at).where(external_requests.c.provider==provider)
-        .order_by(external_requests.c.started_at)).scalars().all()
-    if len(rows)>=p['max_requests']:raise WebError('COTA_EXTERNA_ESGOTADA',503)
-    if provider=='serper':
+    p = policy[provider]
+    started_at = external_requests.c.started_at
+    request_times = select(started_at).where(external_requests.c.provider == provider)
+    counts = [func.count(), func.max(started_at)]
+    if provider == 'serper':
         from datetime import datetime
-        since=datetime.fromisoformat(p['balance_verified_at']).timestamp()
-        if sum(t>=since for t in rows)>=p['confirmed_free_remaining']:raise WebError('COTA_EXTERNA_ESGOTADA',503)
-    wait=max(0,control['lease_until']-now)
-    wait=max(wait,policy.get('not_before',{}).get(provider,0)-now)
-    for limit,seconds in [('per_minute',60),('per_hour',3600),('per_day',86400)]:
-        recent=[t for t in rows if t>now-seconds]
-        if len(recent)>=p[limit]:wait=max(wait,recent[-p[limit]]+seconds-now)
-    if rows:wait=max(wait,rows[-1]+p.get('min_interval',0)-now)
-    return max(0,math.ceil(wait))
+        since = datetime.fromisoformat(p['balance_verified_at']).timestamp()
+        counts.append(func.count(case((started_at >= since, 1))))
+    total, latest, *balance_usage = conn.execute(select(*counts).where(external_requests.c.provider == provider)).one()
+    if total >= p['max_requests'] or (balance_usage and balance_usage[0] >= p['confirmed_free_remaining']):
+        raise WebError('COTA_EXTERNA_ESGOTADA', 503)
+    wait = max(0, control['lease_until'] - now, policy.get('not_before', {}).get(provider, 0) - now)
+    for limit, seconds in WINDOWS:
+        boundary = conn.execute(request_times.where(started_at > now - seconds)
+            .order_by(started_at.desc()).offset(p[limit] - 1).limit(1)).scalar_one_or_none()
+        if boundary is not None:
+            wait = max(wait, boundary + seconds - now)
+    if latest is not None:
+        wait = max(wait, latest + p.get('min_interval', 0) - now)
+    return max(0, math.ceil(wait))
 
 
-def advance_job(store,cnpj,key,clock=time.time,executor=execute_action):
-    now=clock()
+def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organization):
     with store.transaction() as conn:
         control=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
-        policy=checked_policy(control,key)
+        now=clock()
+        policy=checked_policy(control,key,organization,(cnpj,))
         job=conn.execute(select(live_jobs).where(live_jobs.c.cnpj==cnpj).with_for_update()).mappings().first()
         if not job:
             identifier=str(uuid.uuid4())
@@ -97,6 +149,9 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action):
             return dict(status='UNCERTAIN',error='ETAPA_INTERROMPIDA')
         provider=action_for(state)
         wait=quota_delay(conn,control,policy,provider,now)
+        if provider=='minhareceita':
+            # Evita até a chamada cadastral quando a etapa Serper está sem orçamento.
+            wait=max(wait,quota_delay(conn,control,policy,'serper',now))
         if provider=='websites' and state.get('last_web_at'):
             wait=max(wait,math.ceil(state['last_web_at']+state.get('crawl_delay',10)-now))
         if wait>0:return dict(status='WAIT',retry_after=wait,phase=state['phase'])
@@ -156,10 +211,16 @@ def process_consultation(store,user,identifier,key,runner=advance_job):
             current=conn.execute(select(consultations).where(consultations.c.id==identifier)).mappings().one()
             if current['status'] in {'PENDENTE_LOTE','NA_FILA','EM_PROCESSAMENTO'}:
                 payload=json.loads(saved);payload['origem_resultado']='HISTORICO'
+                if payload.get('empresa',{}).get('cnpj') != current['cnpj']:
+                    raise WebError('ERRO_TECNICO',500)
                 store.complete(conn,current,payload,reserved=True)
         return store.consultation(user['organization_id'],identifier)
-    ensure_ready(store,key,user['organization_id'])
-    outcome=runner(store,row['cnpj'],key)
+    try:
+        outcome=runner(store,row['cnpj'],key,organization=user['organization_id'])
+    except WebError as exc:
+        if exc.code != 'COTA_EXTERNA_ESGOTADA':
+            raise
+        outcome=dict(status='FAILED',error=exc.code)
     with store.transaction() as conn:
         store.lock_org(conn,user['organization_id'])
         row=conn.execute(select(consultations).where(consultations.c.id==identifier)).mappings().one()

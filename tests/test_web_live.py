@@ -1,7 +1,9 @@
 import asyncio
 import concurrent.futures
 import json
+import os
 import time
+from threading import Barrier
 import uuid
 from datetime import datetime, timezone
 from dataclasses import replace
@@ -16,13 +18,15 @@ from app.web.live_sources import execute_action
 from app.web.store import external_control, external_requests, live_jobs, charges, WebError, Store
 
 NEW=generated_cnpj(999999)
+ORG='dazumdigital'
+KEY='fixture-private-key'
 
 
 @pytest.fixture
 def live_setup(web,policy):
     p=dict(policy,max_requests=100,min_interval=0)
-    rules=dict(serper=p,websites=p,minhareceita=p)
-    with web[1].transaction() as db:db.execute(insert(external_control).values(id='global',policy=json.dumps(rules),lease_until=0))
+    rules=dict(serper=p,websites=p,minhareceita=p,allowed_organizations=[ORG])
+    live.configure(web[1],rules,key=KEY)
     return web
 
 
@@ -34,7 +38,7 @@ async def simulated(cnpj,state,key):
     return state
 
 
-def runner(store,cnpj,key):return live.advance_job(store,cnpj,key,executor=simulated)
+def runner(store,cnpj,key,*,organization=ORG):return live.advance_job(store,cnpj,key,executor=simulated,organization=organization)
 
 
 def test_real_flow_is_staged_saved_and_charged_once(live_setup):
@@ -57,7 +61,7 @@ def test_real_flow_is_staged_saved_and_charged_once(live_setup):
 def test_failure_never_charges_or_automatically_repeats(live_setup):
     web=live_setup;store=web[1];identity=user(web);calls=[]
     async def failed(*args):calls.append(1);raise ProviderError('ERRO_REDE')
-    run=lambda s,c,k:live.advance_job(s,c,k,executor=failed)
+    run=lambda s,c,k,**kw:live.advance_job(s,c,k,executor=failed,**kw)
     query=store.consult(identity,NEW,str(uuid.uuid4()),True,True)
     result=live.process_consultation(store,identity,query['id'],'fixture-private-key',run)
     assert result['status']=='FALHOU' and result['saldo']['consumidos']==0 and result['saldo']['reservados']==0
@@ -86,7 +90,7 @@ def test_late_worker_preserves_newer_lease(live_setup):
             db.execute(update(external_control).values(lease_until=newer_lease))
         return await simulated(cnpj, state, key)
 
-    result = live.advance_job(store, NEW, 'fixture-private-key', clock=lambda: now, executor=expired_worker)
+    result = live.advance_job(store, NEW, 'fixture-private-key', clock=lambda: now, executor=expired_worker,organization=ORG)
     assert result['status'] == 'UNCERTAIN'
     with store.engine.connect() as db:
         assert db.execute(select(external_control.c.lease_until)).scalar_one() == newer_lease
@@ -96,12 +100,13 @@ def test_late_worker_preserves_newer_lease(live_setup):
 
 def test_no_key_expired_proof_and_exhaustion_block_before_network(live_setup):
     store=live_setup[1]
-    with pytest.raises(WebError):live.advance_job(store,NEW,'',executor=simulated)
+    with pytest.raises(WebError):live.advance_job(store,NEW,'',executor=simulated,organization=ORG)
     with store.transaction() as db:
-        row=db.execute(select(external_control)).mappings().one();p=json.loads(row['policy']);p['minhareceita']['max_requests']=0
+        row=db.execute(select(external_control)).mappings().one();p=json.loads(row['policy']);p['minhareceita']['max_requests']=1
+        db.execute(insert(external_requests).values(id='used',provider='minhareceita',started_at=time.time(),outcome='SUCESSO',operation='used'))
         db.execute(update(external_control).values(policy=json.dumps(p)))
     with pytest.raises(WebError,match='COTA_EXTERNA_ESGOTADA'):runner(store,NEW,'fixture-private-key')
-    with store.engine.connect() as db:assert db.execute(select(func.count()).select_from(external_requests)).scalar()==0
+    with store.engine.connect() as db:assert db.execute(select(func.count()).select_from(external_requests)).scalar()==1
 
 
 def test_provider_quota_wait_is_returned_without_sleep_or_call(live_setup):
@@ -119,7 +124,7 @@ def test_concurrent_duplicates_use_single_global_job(live_setup):
     async def slow(cnpj,state,key):
         calls.append(state['phase']);time.sleep(.1)
         return await simulated(cnpj,state,key)
-    def run(_):return live.advance_job(store,NEW,'fixture-private-key',executor=slow)
+    def run(_):return live.advance_job(store,NEW,'fixture-private-key',executor=slow,organization=ORG)
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:results=list(pool.map(run,range(6)))
     assert calls.count('CADASTRO')==1 and calls.count('BUSCA')<=1
     assert all(r['status'] in {'READY','WAIT','DONE'} for r in results)
@@ -185,3 +190,128 @@ def test_test_only_policy_cannot_research_from_team_account(live_setup):
         db.execute(update(external_control).values(policy=json.dumps(p)))
     with pytest.raises(WebError):live.ensure_ready(web[1],'fixture-private-key','dazumdigital')
     assert live.ensure_ready(web[1],'fixture-private-key','isolated-qa')
+
+
+def test_scoped_policy_rechecked_after_admission(live_setup):
+    store = live_setup[1]
+    live.ensure_ready(store, KEY, ORG, (NEW,))
+    with store.transaction() as db:
+        policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
+    policy['allowed_cnpjs'] = [generated_cnpj(12345)]
+    live.configure(store, policy, key=KEY)
+    for key, org, cnpj in [(KEY, ORG, NEW), ('wrong-key', ORG, policy['allowed_cnpjs'][0]),
+                           (KEY, 'another-organization', policy['allowed_cnpjs'][0])]:
+        with pytest.raises(WebError, match='INTEGRACAO_NAO_VERIFICADA'):
+            runner(store, cnpj, key, organization=org)
+    with store.engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(external_requests)).scalar_one() == 0
+
+
+@pytest.mark.parametrize('use_batch', [False, True])
+def test_hard_quota_releases_commercial_reservation(live_setup, monkeypatch, use_batch):
+    from app.web import batches
+    web = live_setup
+    store = web[1]
+    identity = user(web)
+    with store.transaction() as db:
+        policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
+        policy['serper']['confirmed_free_remaining'] = 1
+        db.execute(insert(external_requests).values(id='used', provider='serper', started_at=time.time(),
+            outcome='RESERVADA', operation='used'))
+    live.configure(store, policy, key=KEY)
+    if use_batch:
+        batch = create(web, NEW).json()
+        original = live.process_consultation
+        monkeypatch.setattr(live, 'process_consultation', lambda s,u,i,k: original(s,u,i,k,runner))
+        result = batches.step_batch(store, identity, batch['id'], batch['itens'][0]['id'], True, KEY)
+        assert result['itens'][0]['erro'] == 'COTA_EXTERNA_ESGOTADA'
+    else:
+        query = store.consult(identity, NEW, uuid.uuid4().hex, True, True)
+        result = live.process_consultation(store, identity, query['id'], KEY, runner)
+        assert result['erro'] == 'COTA_EXTERNA_ESGOTADA' and result['status'] == 'FALHOU'
+    assert result['saldo']['consumidos'] == 0 and result['saldo']['reservados'] == 0
+    with store.engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(external_requests)).scalar_one() == 1
+
+
+@pytest.mark.parametrize(('window', 'seconds'), [('per_minute', 60), ('per_hour', 3600), ('per_day', 86400)])
+def test_serper_windows_include_reserved_calls(live_setup, window, seconds):
+    store = live_setup[1]
+    now = time.time()
+    with store.transaction() as db:
+        policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
+        policy['serper'][window] = 1
+        db.execute(insert(external_requests).values(id='used', provider='serper', started_at=now-1,
+            outcome='RESERVADA', operation='used'))
+    live.configure(store, policy, key=KEY)
+    result = live.advance_job(store, NEW, KEY, executor=simulated, clock=lambda:now, organization=ORG)
+    assert result['status'] == 'WAIT' and result['retry_after'] == seconds-1
+
+
+def test_postgresql_locks_reserve_only_one_serper_call(policy):
+    from sqlalchemy.engine import make_url
+    url = os.getenv('WEB_QUOTA_TEST_DATABASE_URL')
+    if not url:
+        pytest.skip('Banco PostgreSQL local descartável não configurado')
+    parsed = make_url(url)
+    assert parsed.host == '127.0.0.1' and parsed.port == 55445 and parsed.database == 'quota_qa'
+    # A fresh schema makes re-runs independent without resetting any ledger.
+    schema = 'quota_' + uuid.uuid4().hex
+    with Store(url).transaction() as db:
+        db.exec_driver_sql(f'CREATE SCHEMA {schema}')
+    url = parsed.update_query_dict({'options':f'-csearch_path={schema}'}).render_as_string(hide_password=False)
+    store = Store(url)
+    store.initialize()
+    caps = dict(policy, max_requests=100, min_interval=0)
+    live.configure(store, dict(serper=dict(caps, confirmed_free_remaining=1),
+        minhareceita=caps, websites=caps, allowed_organizations=[ORG]), key=KEY)
+    ids = [generated_cnpj(700000 + i) for i in range(4)]
+    from app.web.auth import create_user
+    from app.web.store import users
+    create_user(store, 'offline-qa', 'offline-pass-fixture', organization=ORG)
+    with store.engine.connect() as db:
+        user_id = db.execute(select(users.c.id).where(users.c.username=='offline-qa')).scalar_one()
+    identity = {'id':user_id,'organization_id':ORG}
+    from app.web import batches
+    batch = batches.create_batch(store, identity, '\n'.join(ids), uuid.uuid4().hex)
+    for cnpj in ids:
+        assert runner(store, cnpj, KEY)['status'] == 'READY'
+    # Independent connections contend for the last unit under SELECT FOR UPDATE.
+    barrier = Barrier(len(ids))
+    def next_step(item):
+        independent = Store(url)
+        barrier.wait(timeout=10)
+        return live.process_consultation(independent, identity, item['id'], KEY, runner)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(ids)) as pool:
+        list(pool.map(next_step, batch['itens']))
+    for item in batch['itens']:
+        live.process_consultation(Store(url), identity, item['id'], KEY, runner)
+    result = batches.get_batch(Store(url), identity, batch['id'])
+    assert result['progresso']['concluidos'] == 1 and result['progresso']['erros'] == 3
+    assert result['saldo'] == {'disponiveis':2468,'consumidos':1,'reservados':0,'consultas_concluidas':1}
+    with store.engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(external_requests)
+            .where(external_requests.c.provider == 'serper')).scalar_one() == 1
+        assert db.execute(select(func.count()).select_from(charges)).scalar_one() == 1
+
+
+@pytest.mark.parametrize('error', ['COTA_ESGOTADA', 'ACESSO_NEGADO', 'LIMITE_TEMPORARIO'])
+def test_serper_rejections_block_or_pause_without_resending(live_setup, error):
+    store = live_setup[1]
+    assert runner(store, NEW, KEY)['status'] == 'READY'
+
+    async def rejected(cnpj, state, key):
+        assert state['phase'] == 'BUSCA'
+        raise ProviderError(error, details={'retry_after':60} if error=='LIMITE_TEMPORARIO' else {})
+
+    assert live.advance_job(store, NEW, KEY, executor=rejected, organization=ORG)['status'] == 'FAILED'
+    other = generated_cnpj(999998)
+    if error == 'LIMITE_TEMPORARIO':
+        assert runner(store, NEW, KEY)['status'] == 'FAILED'
+        assert runner(store, other, KEY)['status'] == 'WAIT'
+    else:
+        with pytest.raises(WebError, match='INTEGRACAO_NAO_VERIFICADA'):
+            runner(store, other, KEY)
+    with store.engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(external_requests)
+            .where(external_requests.c.provider == 'serper')).scalar_one() == 1

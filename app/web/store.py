@@ -184,7 +184,7 @@ class Store:
             org = self.lock_org(conn, user['organization_id'])
             old = conn.execute(select(consultations).where(consultations.c.organization_id == org['id'], consultations.c.idempotency_key == key)).mappings().first()
             if old:
-                if old['cnpj'] != cnpj:
+                if old['cnpj'] != cnpj or old['user_id'] != user['id']:
                     raise WebError('CHAVE_REUTILIZADA', 409)
                 return self.view(old, conn)
             if org['initial_tokens'] - org['consumed'] - org['reserved'] <= 0:
@@ -206,10 +206,8 @@ class Store:
             return self.view(row, conn)
 
     def saved_payload(self, conn, organization, cnpj):
-        value = conn.execute(select(companies.c.payload).where(companies.c.organization_id == organization, companies.c.cnpj == cnpj)).scalar_one_or_none()
-        if value is None:
-            value = conn.execute(select(live_jobs.c.result).where(live_jobs.c.cnpj == cnpj, live_jobs.c.status == 'DONE')).scalar_one_or_none()
-        return value
+        return conn.execute(select(companies.c.payload).where(
+            companies.c.organization_id == organization, companies.c.cnpj == cnpj)).scalar_one_or_none()
 
     def claim(self, organization):
         with self.transaction() as conn:

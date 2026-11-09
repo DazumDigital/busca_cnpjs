@@ -79,32 +79,19 @@ Esse comando revoga as sessões anteriores. Não altera tokens comerciais nem co
 
 ## Motor existente e consultas externas
 
-`app/web/engine.py` reutiliza `Serper`, `JsonAPI`, `QuotaManager`, `WebsiteFinder`, `WebsiteValidator` e as proteções de SSRF originais. O motor CLI não foi substituído. Não há chamada a um provedor no navegador.
+O executor web reutiliza a configuração de consulta da Serper, a validação de websites e as proteções de SSRF da POC. O motor CLI legado permanece separado. Nenhum provedor é chamado pelo navegador.
 
-**Nesta entrega, `WEB_ENABLE_EXTERNAL=false`.** A aplicação consulta os vinte registros importados sem consumir créditos externos. Nenhuma pesquisa real foi executada no desenvolvimento.
+Enquanto `WEB_ENABLE_EXTERNAL=false`, a aplicação consulta o histórico sem consumir créditos externos. O fluxo novo é validado com provedores simulados antes de qualquer piloto autorizado.
 
-O adaptador externo foi testado com HTTP mockado. Funciona apenas em executor local explícito; não é iniciado em background pela função HTTP. Usa fila persistente no banco web. Uma operação no servidor HTTP somente cria a fila/reserva após autorização explícita do usuário e habilitação administrativa. Um executor já autorizado reivindica um único trabalho por vez.
+As consultas novas e os lotes usam etapas HTTP com persistência em PostgreSQL. Cada etapa pode reservar no máximo uma chamada de provedor; reiniciar a página recupera o progresso no histórico. Uma etapa interrompida após a reserva não é reenviada automaticamente. Consulte [o procedimento de ativação da pesquisa externa](ATIVAR_PESQUISA_EXTERNA.md) antes de configurar o ambiente.
 
-Antes de habilitar esse executor, o responsável deve confirmar conta gratuita, ausência de cartão/cobrança automática, saldo gratuito atual e manifesto válido. Não basta haver tokens comerciais. A verificação local desta entrega encontrou o manifesto de pesquisa expirado: não foi atualizado nem liberado automaticamente.
-
-O consumo técnico permanece em `data/poc.sqlite`, com lock compartilhado com os pilotos CLI. Os novos checkpoints ficam separados em `var/engine.sqlite`. Nunca usar uma cópia zerada como livro técnico.
-
-Limites conservadores do adaptador: uma empresa, concorrência 1, uma pesquisa, um candidato e zero retentativas. Reutiliza `small_settings`/`pilot_policies`: teto global de websites no máximo 120, no máximo seis chamadas de websites por minuto e intervalo mínimo de cinco segundos. Por trabalho: no máximo uma reserva de pesquisa e doze de websites, sempre subordinadas aos tetos menores já configurados. Não inicia uma pesquisa quando a cota de websites acabou. CNPJs presentes no histórico não são pesquisados novamente pelo adaptador.
-
-Após autorização específica futura, revalidação do manifesto e configuração local, o comando é:
-
-```powershell
-# Não executar enquanto WEB_ENABLE_EXTERNAL=false ou sem autorização real.
-.\.venv\Scripts\python.exe -m app.web.manage work-one --authorize-external
-```
-
-O executor usa as credenciais existentes somente no servidor local, sem incluí-las no pacote Vercel. Uma interrupção abrupta deixa o trabalho `EM_PROCESSAMENTO`; ele não é reenviado automaticamente, para evitar consumo duplicado do provedor. Após parar o executor e revisar a auditoria:
+O comando administrativo local `work-one --authorize-external` usa o mesmo executor, política e livro técnico do servidor, processando uma etapa por invocação. Para cancelar uma consulta individual pendente após parar o executor e conferir a auditoria:
 
 ```powershell
 .\.venv\Scripts\python.exe -m app.web.manage cancel-job ID_DA_CONSULTA --confirmed-worker-stopped
 ```
 
-Esse comando libera uma reserva comercial pendente sem zerar contadores técnicos. Não cancele um trabalho enquanto o executor ainda estiver ativo.
+O cancelamento libera a reserva comercial pendente e mantém os registros técnicos.
 
 ## Segurança e interface
 
@@ -116,9 +103,9 @@ Há CSP restritiva, cabeçalhos de segurança, limite de 4 KB para corpos JSON, 
 
 ## Vercel e persistência de produção
 
-O entrypoint é `app.web.api:app`, configurado em `pyproject.toml`. Python 3.14 é especificado em `.python-version`. A Vercel detecta FastAPI a partir das dependências, promove o diretório montado `/assets` e configura uma única função Python. `vercel.json` usa o arquivo real `app/web/api.py` e um limite HTTP de 30 segundos para a modalidade de dados armazenados.
+O entrypoint é `app.web.api:app`, configurado em `pyproject.toml`. Python 3.14 é especificado em `.python-version`. A Vercel detecta FastAPI a partir das dependências, promove o diretório montado `/assets` e configura uma única função Python. `vercel.json` usa o arquivo real `app/web/api.py` e um limite HTTP de 30 segundos por etapa.
 
-Os dados privados, bancos, ambientes virtuais, arquivos de ambiente e manifestos operacionais são excluídos por `.vercelignore` e `excludeFiles`. Não há caminhos Windows fixos no runtime web; os caminhos históricos só aparecem nos guias locais e na auditoria privada importada.
+Os dados privados, bancos, ambientes virtuais, arquivos de ambiente e manifestos operacionais são excluídos por `.vercelignore` e `excludeFiles`. `/data/` exclui somente a pasta de dados na raiz. As regras públicas em `app/services/third_party_rules.json` entram explicitamente na função e o build falha se o arquivo estiver ausente. Não há caminhos Windows fixos no runtime web; os caminhos históricos só aparecem nos guias locais e na auditoria privada importada.
 
 `git.deploymentEnabled=false` bloqueia deploys automáticos por push em qualquer branch. A publicação do código para revisão não autoriza nem dispara uma publicação Vercel. O fluxo manual posterior continua dependendo de autorização.
 
