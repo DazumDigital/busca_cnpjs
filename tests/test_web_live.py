@@ -148,8 +148,12 @@ def test_robots_and_redirect_are_separate_bounded_steps(monkeypatch):
     state=dict(phase='WEBSITE',queue=['https://corporativa.com.br/secret'],company=Company(NEW,legal_name='Corporativa').__dict__,robots={},created_at=time.time())
     next=asyncio.run(execute_action(NEW,state,'key'))
     assert len(calls)==1 and next['crawl_delay']==30
-    with pytest.raises(ProviderError,match='ROBOTS_BLOQUEADO'):asyncio.run(execute_action(NEW,next,'key'))
-    assert len(calls)==1
+    # Robots bloqueando o candidato encerra só a validação desse site: a
+    # consulta conclui com o candidato pendente, sem acessar a página proibida.
+    final=asyncio.run(execute_action(NEW,next,'key'))
+    assert len(calls)==1 and final['phase']=='DONE'
+    assert final['site_failures']==[{'url':'https://corporativa.com.br/secret','error':'ROBOTS_BLOQUEADO'}]
+    assert final['validation']['site_type']=='VALIDATION_ERROR'
 
 
 @pytest.mark.parametrize('n',[1,5,10,15])
@@ -304,12 +308,16 @@ def test_serper_rejections_block_or_pause_without_resending(live_setup, error):
         assert state['phase'] == 'BUSCA'
         raise ProviderError(error, details={'retry_after':60} if error=='LIMITE_TEMPORARIO' else {})
 
-    assert live.advance_job(store, NEW, KEY, executor=rejected, organization=ORG)['status'] == 'FAILED'
+    first = live.advance_job(store, NEW, KEY, executor=rejected, organization=ORG)
     other = generated_cnpj(999998)
     if error == 'LIMITE_TEMPORARIO':
-        assert runner(store, NEW, KEY)['status'] == 'FAILED'
+        # 429: o provedor recusou antes de processar. O progresso é mantido e a
+        # mesma etapa aguarda o cooldown, sem reenviar durante a espera.
+        assert first['status'] == 'WAIT' and first['retry_after'] >= 60
+        assert runner(store, NEW, KEY)['status'] == 'WAIT'
         assert runner(store, other, KEY)['status'] == 'WAIT'
     else:
+        assert first['status'] == 'FAILED'
         with pytest.raises(WebError, match='INTEGRACAO_NAO_VERIFICADA'):
             runner(store, other, KEY)
     with store.engine.connect() as db:

@@ -1,4 +1,4 @@
-import {digits, mask, validCnpj, safeLink, groups, analyzeBatch} from './core.mjs';
+import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const number = new Intl.NumberFormat('pt-BR');
@@ -101,13 +101,17 @@ async function submit(external=false) {
     await showConsultation(data); await history();
   } catch(error) {
     $('search-error').textContent=error.message;
-    if(error.status && error.status<500) { pending=null; memorySet('dazum_pending',null); }
+    // Configuration and quota refusals are final for this operation: no automatic resubmission.
+    const final=error.status && (error.status<500 || ['INTEGRACAO_NAO_VERIFICADA','COTA_EXTERNA_ESGOTADA','CONFIGURACAO_PENDENTE'].includes(error.code));
+    if(final) { pending=null; memorySet('dazum_pending',null); }
     if(error.code==='EMPRESA_NAO_PESQUISADA' && state.external) $('external-option').hidden=false;
-    if(!error.status || error.status>=500) $('search-error').textContent+=' Envie novamente para recuperar a mesma operação, sem desconto duplicado.';
+    if(!final) $('search-error').textContent+=' Envie novamente para recuperar a mesma operação, sem desconto duplicado.';
     try { await refreshBalance(); } catch { /* The next recovery will refresh the authoritative balance. */ }
   } finally { busy(false); }
 }
 async function showConsultation(data, focus=true) {
+  // A reopened consultation replaces any message left by a previous one.
+  $('search-error').textContent='';
   updateBalance(data.saldo);
   const running=['NA_FILA','EM_PROCESSAMENTO'].includes(data.status);
   $('progress-panel').hidden=!running;
@@ -121,7 +125,7 @@ async function showConsultation(data, focus=true) {
     },Math.max(1500,(data.retry_after || 0)*1000));
     return;
   }
-  if(data.status==='FALHOU') { $('search-error').textContent='Não foi possível concluir a pesquisa. Nenhum token foi consumido.'; if(!data.resultado)return; }
+  if(data.status==='FALHOU') { $('search-error').textContent=failureMessage(data.erro); if(!data.resultado){$('results').hidden=true;return;} }
   if(data.resultado) { state.result=data.resultado; state.filter='todos'; render(data); if(focus) { $('results').focus({preventScroll:true}); $('results').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); } }
 }
 async function reopen(id, focus=true) {
@@ -170,7 +174,7 @@ function renderLink(item,key) {
   for(const alert of item.ressalvas || []) card.append(node('p','alert',alert));
   if(item.revisao_necessaria && !(item.ressalvas || []).length) card.append(node('p','data-note','Correspondência parcial. Referência disponível para revisão.'));
   if(item.paginas?.length) { const disclosure=node('details','evidence'); disclosure.append(node('summary','','Ver evidências armazenadas')); for(const page of item.paginas) {disclosure.append(node('p','',page.titulo || page.url)); if(page.trecho) disclosure.append(node('p','',page.trecho));} card.append(disclosure); }
-  const actions=node('div','link-actions'), open=node('a','open-link',key==='oficial'?'Acessar site':'Abrir referência'); open.href=url; open.target='_blank'; open.rel='noopener noreferrer'; open.append(node('span','','↗'));
+  const actions=node('div','link-actions'), open=node('a','open-link',key==='oficial' || key==='possiveis'?'Acessar site':key==='sociais'?'Abrir perfil':'Abrir referência'); open.href=url; open.target='_blank'; open.rel='noopener noreferrer'; open.append(node('span','','↗'));
   const copy=node('button','copy','Copiar link'); copy.type='button'; copy.setAttribute('aria-label','Copiar link de '+item.dominio);
   copy.addEventListener('click',async()=>{try { await navigator.clipboard.writeText(url); toast('Link copiado'); }catch { toast('Selecione o link e copie pelo navegador.'); }});
   actions.append(open,copy); card.append(actions); return card;
@@ -219,9 +223,10 @@ function showBatch(data) {
   $('batch-progress-bar').max=p.total;$('batch-progress-bar').value=p.concluidos+p.erros;
   $('batch-resume').hidden=!p.pendentes || state.batchLoopActive;$('batch-pause').hidden=!state.batchRunning;$('batch-cancel').hidden=!p.pendentes;
   $('batch-items').replaceChildren();
-  const errors={EMPRESA_NAO_PESQUISADA:'Sem pesquisa armazenada; nenhum token consumido.',DADOS_ARMAZENADOS_INVALIDOS:'Dados inconsistentes; nenhum token consumido.',CANCELADA:'Encerrada; reserva liberada.'};
   for(const item of data.itens) {
-    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)),node('p','',errors[item.erro] || (item.erro?'Falha técnica; nenhum token consumido.':({PENDENTE_LOTE:'Pendente',CONCLUIDA:'Concluída · 1 token',FALHOU:'Não concluída'})[item.status] || item.status)));
+    const name=item.resultado?.empresa?.nome_fantasia || item.resultado?.empresa?.razao_social;
+    const site=item.resultado?.website_oficial?'Site oficial confirmado':item.resultado?.possiveis_sites?.length?'Possível site para revisão':'Sem site oficial confirmado';
+    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?'Concluída · 1 token · '+site:({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
     row.append(info);if(item.resultado){const button=node('button','','Ver resultado ↗');button.type='button';button.addEventListener('click',()=>reopen(item.id));row.append(button);}$('batch-items').append(row);
   }
   exportButtons($('batch-exports'),'/api/lotes/'+encodeURIComponent(data.id)+'/exportar');

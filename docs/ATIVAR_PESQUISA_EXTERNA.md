@@ -24,6 +24,55 @@ O comando registra a política e vincula sua aprovação à chave sem gravar o v
 
 Só depois disso, defina `WEB_ENABLE_EXTERNAL=true` em Production e faça um novo deployment da revisão validada para aplicar as variáveis. Entre na conta isolada e execute **somente** a pesquisa autorizada. Confirme os dados e fontes na interface, a persistência no Neon, até uma reserva da Serper e o saldo intacto da equipe. Compare o saldo do provedor no painel e volte a desligar a flag após o piloto. A abertura para a equipe ou a autorização de novos CNPJs exige nova decisão de escopo e limites.
 
+## Comandos administrativos (todos locais, com o arquivo privado de ambiente)
+
+Use `$py = 'C:\Cristiano\busca_cnpjs\outputs\cnpj-enrichment\.venv\Scripts\python.exe'` e `$envfile` com o caminho do arquivo privado. Nenhum destes comandos chama provedores externos, imprime segredos ou altera o saldo de organizações existentes.
+
+| Objetivo | Comando |
+|---|---|
+| Criar organização isolada de QA com 1 token (não altera organização existente) | `& $py -m app.web.manage --env-file $envfile create-org qa-serper-weg --tokens 1` |
+| Criar usuário na organização de QA (senha pedida interativamente) | `& $py -m app.web.manage --env-file $envfile create-user qa.piloto.weg --org qa-serper-weg` |
+| Registrar/renovar a política (chave lida do ambiente, só o hash é salvo) | `& $py -m app.web.manage --env-file $envfile configure-external MANIFESTO.json` |
+| Ver política (sem hash da chave), livro técnico e estado das pesquisas | `& $py -m app.web.manage --env-file $envfile external-status` |
+| **Desligar imediatamente pelo banco**, sem redeploy | `& $py -m app.web.manage --env-file $envfile block-external` |
+| Saldo de uma organização | `& $py -m app.web.manage --env-file $envfile balance --org qa-serper-weg` |
+| Liberar pesquisa falha/incerta após revisar a auditoria | `& $py -m app.web.manage --env-file $envfile retry-job 84429695000111 --confirmed-reviewed` |
+| Desativar a conta de teste preservando consultas e auditoria | `& $py -m app.web.manage --env-file $envfile deactivate-user qa.piloto.weg` |
+
+`block-external` grava `blocked: true` na política: nenhuma etapa externa nova é reservada, mesmo com `WEB_ENABLE_EXTERNAL=true`. Para voltar, é preciso rodar `configure-external` com um manifesto revisado. `retry-job` não apaga o livro técnico; a próxima etapa usa um novo identificador de operação e continua contando nas cotas.
+
+## Como a pesquisa real funciona
+
+Cada clique ou passo do lote executa **uma** etapa HTTP com no máximo uma chamada externa:
+
+1. **Cadastro** (Minha Receita, sem chave): razão social, nome fantasia, município, UF e situação cadastral. CNPJ ausente na base → `CNPJ_NAO_ENCONTRADO`, sem token.
+2. **Busca** (Serper, 1 crédito): nome + município + "site oficial", excluindo diretórios conhecidos. Somente as URLs são guardadas, nunca a SERP integral.
+3. **Validação de sites** (até 3 sites candidatos e 8 acessos por consulta, robots.txt respeitado, intervalo mínimo de 10 s): o site é oficial apenas com CNPJ exato, nome, titularidade em rodapé/página legal, marca no título e domínio compatível. Se o primeiro candidato falhar ou for de terceiro, o próximo é tentado.
+
+Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do site, redirecionamentos) **não derrubam a consulta**: o resultado é concluído e salvo com o status `FALHA_VALIDACAO_SITE_OFICIAL` e o candidato aparece em "Possíveis sites" com o motivo. Isso consome 1 token, como qualquer consulta concluída (cadastro e busca foram entregues). Falhas no cadastro ou na busca continuam sem desconto. Se a cota total de websites do manifesto acabar no meio da validação, a consulta também é concluída localmente com o que já foi obtido, sem nova chamada.
+
+Limite temporário (HTTP 429) do cadastro ou da busca pausa a etapa até o cooldown (mínimo 60 s), no máximo 3 vezes; depois disso a pesquisa falha sem desconto.
+
+## Liberação para a equipe (somente após decisão separada)
+
+Manifesto sugerido para a organização da equipe, com `allowed_cnpjs` omitido (qualquer CNPJ válido) e saldo reconferido no painel da Serper. `balance_valid_hours` permite até 720 h (30 dias) de validade da conferência quando a conta não tem meio de pagamento; o padrão continua 24 h. O consumo desde `balance_verified_at` nunca passa de `confirmed_free_remaining`.
+
+```json
+{
+  "allowed_organizations": ["dazumdigital"],
+  "serper": {"max_requests": 300, "per_minute": 2, "per_hour": 20, "per_day": 60,
+             "confirmed_free_remaining": 2400, "balance_verified_at": "AAAA-MM-DDTHH:MM:SS+00:00",
+             "balance_valid_hours": 168, "reviewed_on": "AAAA-MM-DD", "expires_on": "AAAA-MM-DD",
+             "evidence": "Billing sem meio de pagamento, sem recarga, saldo conferido em ...",
+             "verified": true, "free_only": true, "no_card": true, "no_auto_charge": true,
+             "no_paid_credits": true, "storage_permitted": true, "batch_permitted": true},
+  "minhareceita": {"max_requests": 2000, "per_minute": 6, "per_hour": 60, "per_day": 300},
+  "websites": {"max_requests": 5000, "per_minute": 6, "per_hour": 240, "per_day": 1000, "min_interval": 10}
+}
+```
+
+Os tetos `max_requests` são acumulados com o histórico já registrado no Neon: some o consumo técnico atual (`external-status`) à margem autorizada. Com `per_minute: 2` na Serper, um lote de 15 CNPJs novos leva cerca de 8 minutos só na etapa de busca, mais a validação dos sites; a página mostra a espera e retoma sozinha enquanto estiver aberta.
+
 ## Cotas e retomada
 
-O PostgreSQL serializa a reserva das etapas externas. A cota total, o saldo confirmado e as janelas móveis de minuto, hora e dia incluem reservas incertas e chamadas que falharam. O bloqueio da Serper por falta de créditos ou acesso negado impede novas chamadas até revisão. Uma espera de limite temporário mantém o progresso salvo; cota definitivamente esgotada encerra o item sem desconto comercial. Repetir a mesma operação ou etapa não duplica o desconto. Um lote aceita até 15 CNPJs distintos e progride por etapas; recarregar a página recupera o lote pelo histórico.
+O PostgreSQL serializa a reserva das etapas externas. A cota total, o saldo confirmado e as janelas móveis de minuto, hora e dia incluem reservas incertas e chamadas que falharam. O bloqueio da Serper por falta de créditos ou acesso negado impede novas chamadas até revisão. Uma espera de limite temporário mantém o progresso salvo; cota da Serper ou do cadastro definitivamente esgotada encerra o item sem desconto comercial e a pesquisa retoma da mesma fase quando houver nova cota. Repetir a mesma operação ou etapa não duplica o desconto. Um lote aceita até 15 CNPJs distintos e progride por etapas; recarregar a página recupera o lote pelo histórico.
