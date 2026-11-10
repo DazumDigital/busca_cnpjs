@@ -37,7 +37,10 @@ MESSAGES = {
     'BANCO_INDISPONIVEL': 'A conexão com o banco está temporariamente indisponível. Tente novamente em instantes.',
     'LIMITE_LOTE': 'Informe no máximo 15 CNPJs válidos e distintos por lote.',
     'INTEGRACAO_NAO_VERIFICADA': 'A pesquisa externa aguarda configuração ou renovação da confirmação gratuita pelo responsável.',
-    'COTA_EXTERNA_ESGOTADA': 'O limite gratuito configurado foi atingido. Nenhuma nova chamada externa foi enviada.',
+    'PESQUISA_SUSPENSA': 'A pesquisa externa está suspensa pelo responsável. Nenhuma chamada foi enviada e nenhum token foi consumido.',
+    'PESQUISA_NAO_LIBERADA': 'Sua conta não está liberada para pesquisas externas deste CNPJ. Fale com o responsável. Nenhum token foi consumido.',
+    'LIMITE_CONSULTAS': 'Limite de consultas por minuto atingido. Aguarde um minuto e tente novamente; nada foi cobrado.',
+    'COTA_EXTERNA_ESGOTADA': 'O limite de pesquisas externas aprovado foi atingido. Nenhuma nova chamada foi enviada e nenhum token foi consumido.',
 }
 
 
@@ -196,7 +199,7 @@ def create_app(settings=None, store=None):
         key = request.headers.get('idempotency-key', '')
         if not re.fullmatch(r'[A-Za-z0-9_-]{16,80}', key):
             raise WebError('REQUISICAO_INVALIDA', 422)
-        database().throttle('query:' + user['organization_id'], config.query_per_minute)
+        database().throttle('query:' + user['organization_id'], config.query_per_minute, code='LIMITE_CONSULTAS')
         if config.external_enabled:
             with database().engine.connect() as conn:
                 saved=database().saved_payload(conn,user['organization_id'],cnpj)
@@ -248,7 +251,7 @@ def create_app(settings=None, store=None):
         key = request.headers.get('idempotency-key', '')
         if not re.fullmatch(r'[A-Za-z0-9_-]{16,80}', key):
             raise WebError('REQUISICAO_INVALIDA', 422)
-        database().throttle('batch:' + user['organization_id'], config.query_per_minute)
+        database().throttle('batch:' + user['organization_id'], config.query_per_minute, code='LIMITE_CONSULTAS')
         if config.external_enabled:
             from app.web.batch_input import validated_input
             parsed=validated_input(body.cnpjs)
@@ -286,6 +289,11 @@ def create_app(settings=None, store=None):
     @app.get('/')
     def home():
         return FileResponse(STATIC / 'index.html')
+
+    @app.get('/robo')
+    def robot_info():
+        # Página pública referenciada pelo User-Agent do robô de validação.
+        return FileResponse(STATIC / 'robo.html')
 
     @app.get('/favicon.ico')
     def favicon():

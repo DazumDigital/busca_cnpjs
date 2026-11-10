@@ -1,4 +1,4 @@
-import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage, needsProcessing, nextBatchItem} from './core.mjs';
+import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage, needsProcessing, nextBatchItem, waitMessage} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const number = new Intl.NumberFormat('pt-BR');
@@ -32,6 +32,7 @@ async function api(path, options={}) {
 }
 function signedOut() {
   state.csrf=''; $('login-panel').hidden=false; $('search-panel').hidden=true; $('logout').hidden=true;
+  $('current-user').hidden=true; $('current-user').textContent='';
   $('historico').hidden=true; $('results').hidden=true; $('progress-panel').hidden=true;
   $('balance').textContent='—'; $('consumed').textContent='—'; state.balance=null;
   state.batchRunning=false; state.batch=null; $('batch-panel').hidden=true;
@@ -52,6 +53,7 @@ async function authorized() {
   const session=await api('/api/sessao');
   if(!session.autenticado) {signedOut();return;}
   state.csrf=session.csrf; state.external=session.pesquisa_externa_disponivel;
+  $('current-user').textContent=session.usuario; $('current-user').title='Conectado como '+session.usuario; $('current-user').hidden=false;
   $('batch-mode').textContent=state.external?'Resultados existentes são reaproveitados. Empresas novas são pesquisadas progressivamente, respeitando as cotas gratuitas. 1 token por consulta concluída.':'Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas. CNPJs sem registro não são cobrados.';
   $('login-panel').hidden=true; $('search-panel').hidden=false; $('logout').hidden=false; $('historico').hidden=false;
   await refreshBalance(); await history(); await batchHistory(); await restoreBatch();
@@ -102,7 +104,7 @@ async function submit(external=false) {
   } catch(error) {
     $('search-error').textContent=error.message;
     // Configuration and quota refusals are final for this operation: no automatic resubmission.
-    const final=error.status && (error.status<500 || ['INTEGRACAO_NAO_VERIFICADA','COTA_EXTERNA_ESGOTADA','CONFIGURACAO_PENDENTE'].includes(error.code));
+    const final=error.status && (error.status<500 || ['INTEGRACAO_NAO_VERIFICADA','PESQUISA_SUSPENSA','COTA_EXTERNA_ESGOTADA','CONFIGURACAO_PENDENTE'].includes(error.code));
     if(final) { pending=null; memorySet('dazum_pending',null); }
     if(error.code==='EMPRESA_NAO_PESQUISADA' && state.external) $('external-option').hidden=false;
     if(!final) $('search-error').textContent+=' Envie novamente para recuperar a mesma operação, sem desconto duplicado.';
@@ -118,7 +120,7 @@ async function showConsultation(data, focus=true) {
   if(state.poll) clearTimeout(state.poll);
   if(running) {
     $('results').hidden=true;
-    $('progress-panel').querySelector('p').textContent=data.retry_after?`Aguardando o intervalo seguro entre acessos: próxima verificação em ${data.retry_after}s.`:data.status==='CONCLUIDA'?'Revalidando os sites já encontrados, sem nova busca paga e sem novo token.':({CADASTRO:'Identificando a empresa na base cadastral.',BUSCA:'Pesquisando websites e referências.',WEBSITE:'Validando os candidatos com segurança.'})[data.etapa_pesquisa] || 'Pesquisa registrada. O progresso permanece salvo.';
+    $('progress-panel').querySelector('p').textContent=data.retry_after?waitMessage(data.retry_after):data.status==='CONCLUIDA'?'Revalidando os sites já encontrados, sem nova busca paga e sem novo token.':({CADASTRO:'Identificando a empresa na base cadastral.',BUSCA:'Pesquisando websites e referências.',WEBSITE:'Validando os candidatos com segurança.'})[data.etapa_pesquisa] || 'Pesquisa registrada. O progresso permanece salvo.';
     if(state.external)state.poll=setTimeout(async()=>{
       try{const next=await api('/api/consultas/'+encodeURIComponent(data.id)+'/processar',{method:'POST'});await showConsultation(next,false);await history();}
       catch(error){$('search-error').textContent=error.message+' Reabra a consulta pelo histórico para retomar.';}
@@ -145,7 +147,7 @@ function render(data) {
   details.append(meta); $('company-card').append(monogram,details,node('span','company-status','Pesquisa registrada'));
   const all=groups(result), total=all.reduce((sum,g)=>sum+g.items.length,0);
   $('result-date').textContent=(result.origem_resultado==='PESQUISA_REAL'?'Pesquisa real registrada · ':'Resultado histórico · ')+new Date(data.criado_em*1000).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
-  $('result-summary').textContent=total?`${total} ${total===1?'link identificado':'links identificados'} · Fontes organizadas por tipo de vínculo.`:'Nenhum resultado encontrado. Não identificamos sites ou referências para este CNPJ.';
+  $('result-summary').textContent=total?`${total} ${total===1?'link identificado':'links identificados'} · Fontes organizadas por tipo de vínculo.`:'Nenhum resultado encontrado. Não identificamos sites ou referências para este CNPJ.'+(data.token_consumido===false?' Nenhum token foi consumido.':'');
   $('filters').replaceChildren();
   for(const filter of [{key:'todos',title:'Todos',count:total},...all.filter(g=>g.items.length).map(g=>({key:g.key,title:({oficial:'Oficial',manual:'Manual',possiveis:'Possíveis sites',sociais:'Redes sociais',referencias:'Referências'})[g.key],count:g.items.length}))]) {
     const button=node('button','filter'+(state.filter===filter.key?' active':''),filter.title); button.type='button'; button.setAttribute('aria-pressed',String(state.filter===filter.key)); button.append(node('small','',filter.count));
@@ -171,6 +173,7 @@ function renderLink(item,key) {
   const card=node('article','link-card'+(key==='oficial'?' official':key==='manual'?' manual':''));
   const top=node('div','card-top'); top.append(node('span','source-type',types[item.tipo] || 'Fonte de referência'),node('span','badge'+(item.confianca==='BAIXA'?' low':item.confianca==='ALTA'?' high':''),confidence[item.confianca] || 'Para revisão'));
   card.append(top,node('h3','',item.dominio || new URL(url).hostname),node('p','full-url',url),node('p','evidence',textEvidence(item.evidencia)));
+  if(item.indicado_google===true) card.append(node('p','google-note','Indicado pelo painel do Google'));
   for(const alert of item.ressalvas || []) card.append(node('p','alert',alert));
   if(item.revisao_necessaria && !(item.ressalvas || []).length) card.append(node('p','data-note','Correspondência parcial. Referência disponível para revisão.'));
   if(item.paginas?.length) { const disclosure=node('details','evidence'); disclosure.append(node('summary','','Ver evidências armazenadas')); for(const page of item.paginas) {disclosure.append(node('p','',page.titulo || page.url)); if(page.trecho) disclosure.append(node('p','',page.trecho));} card.append(disclosure); }
@@ -217,7 +220,7 @@ function exportButtons(container,path) {
 function showBatch(data) {
   state.batch=data;memorySet('dazum_batch_last',data.id);$('batch-panel').hidden=false;updateBalance(data.saldo);
   const p=data.progresso;
-  $('batch-note').textContent=data.retry_after?`Aguardando a cota gratuita. Próxima tentativa em ${data.retry_after}s. Etapa: ${data.etapa_pesquisa || 'pesquisa'}.`:'O progresso fica salvo. Você pode sair e retomar os itens pendentes pelo histórico.';
+  $('batch-note').textContent=data.retry_after?waitMessage(data.retry_after)+' Os demais itens continuam enquanto isso.':'O progresso fica salvo. Você pode sair e retomar os itens pendentes pelo histórico.';
   $('batch-state').textContent=({PENDENTE:'Pendente',EM_ANDAMENTO:'Em andamento',CONCLUIDO:'Concluído',CONCLUIDO_COM_ERROS:'Concluído com pendências'})[data.status] || data.status;
   $('batch-progress').textContent=`Total: ${p.total} · Concluídos: ${p.concluidos} · Em andamento: ${p.em_andamento} · Pendentes: ${p.pendentes} · Erros: ${p.erros} · Tokens consumidos: ${p.tokens_consumidos}`;
   $('batch-progress-bar').max=p.total;$('batch-progress-bar').value=p.concluidos+p.erros;
@@ -226,7 +229,7 @@ function showBatch(data) {
   for(const item of data.itens) {
     const name=item.resultado?.empresa?.nome_fantasia || item.resultado?.empresa?.razao_social;
     const site=item.resultado?.website_oficial?'Site oficial confirmado':item.resultado?.possiveis_sites?.length?'Possível site para revisão':'Sem site oficial confirmado';
-    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?'Concluída · 1 token · '+site:({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
+    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?(item.token_consumido===false?'Concluída · sem resultado utilizável · nenhum token':'Concluída · 1 token · '+site):({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
     row.append(info);if(item.resultado){const button=node('button','','Ver resultado ↗');button.type='button';button.addEventListener('click',()=>reopen(item.id));row.append(button);}$('batch-items').append(row);
   }
   exportButtons($('batch-exports'),'/api/lotes/'+encodeURIComponent(data.id)+'/exportar');

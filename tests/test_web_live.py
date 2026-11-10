@@ -34,7 +34,8 @@ async def simulated(cnpj,state,key):
     assert key=='fixture-private-key'
     state=dict(state)
     if state['phase']=='CADASTRO':state.update(company=Company(cnpj,legal_name='EMPRESA FIXTURE LTDA',city='Blumenau',state='SC').__dict__,phase='BUSCA')
-    else:state.update(phase='DONE',candidates=[])
+    # Uma referência com o CNPJ exato torna o resultado utilizável (1 token).
+    else:state.update(phase='DONE',candidates=[f'https://cnpj.biz/{cnpj}'])
     return state
 
 
@@ -141,7 +142,7 @@ def test_robots_and_redirect_are_separate_bounded_steps(monkeypatch):
     from app.web import live_sources
     from app.services.validator import Page
     calls=[]
-    async def fetch(url):
+    async def fetch(url, robots=False):
         calls.append(url)
         return Page(url,200,{},'User-agent: *\nDisallow: /secret\nCrawl-delay: 30')
     monkeypatch.setattr(live_sources,'fetch_one',fetch)
@@ -203,9 +204,11 @@ def test_scoped_policy_rechecked_after_admission(live_setup):
         policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
     policy['allowed_cnpjs'] = [generated_cnpj(12345)]
     live.configure(store, policy, key=KEY)
-    for key, org, cnpj in [(KEY, ORG, NEW), ('wrong-key', ORG, policy['allowed_cnpjs'][0]),
-                           (KEY, 'another-organization', policy['allowed_cnpjs'][0])]:
-        with pytest.raises(WebError, match='INTEGRACAO_NAO_VERIFICADA'):
+    # Causas distintas: escopo não liberado (403) e configuração/chave pendente (503).
+    for key, org, cnpj, code in [(KEY, ORG, NEW, 'PESQUISA_NAO_LIBERADA'),
+                                 ('wrong-key', ORG, policy['allowed_cnpjs'][0], 'INTEGRACAO_NAO_VERIFICADA'),
+                                 (KEY, 'another-organization', policy['allowed_cnpjs'][0], 'PESQUISA_NAO_LIBERADA')]:
+        with pytest.raises(WebError, match=code):
             runner(store, cnpj, key, organization=org)
     with store.engine.connect() as db:
         assert db.execute(select(func.count()).select_from(external_requests)).scalar_one() == 0
@@ -318,7 +321,7 @@ def test_serper_rejections_block_or_pause_without_resending(live_setup, error):
         assert runner(store, other, KEY)['status'] == 'WAIT'
     else:
         assert first['status'] == 'FAILED'
-        with pytest.raises(WebError, match='INTEGRACAO_NAO_VERIFICADA'):
+        with pytest.raises(WebError, match='PESQUISA_SUSPENSA'):
             runner(store, other, KEY)
     with store.engine.connect() as db:
         assert db.execute(select(func.count()).select_from(external_requests)

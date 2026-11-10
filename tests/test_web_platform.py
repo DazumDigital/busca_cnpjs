@@ -88,11 +88,18 @@ def test_real_classifications(web,cnpj,field):
         assert farm['confianca']=='BAIXA' and farm['ressalvas']
 
 
-def test_without_selected_references_still_one_token(web):
+def test_without_usable_links_no_token(web):
+    # Regra aprovada em 09/11/2026: sem site, referência ou rede social não há
+    # resultado utilizável, então não há desconto (nem em releituras).
     data=query(web,KOBARG).json()
-    assert not data['resultado']['referencias']
-    assert data['resultado']['website_oficial'] is None
-    assert data['saldo']['consumidos']==1
+    result=data['resultado']
+    assert not result['referencias'] and not result['possiveis_sites'] and not result['redes_sociais']
+    assert result['website_oficial'] is None and data['status']=='CONCLUIDA'
+    assert data['saldo']['consumidos']==0 and data['saldo']['reservados']==0 and data['token_consumido'] is False
+    assert any('Nenhum token foi consumido' in note for note in result['ressalvas'])
+    assert query(web,KOBARG).json()['saldo']['consumidos']==0
+    useful=query(web,DAIJU).json()
+    assert useful['token_consumido'] is True and useful['saldo']['consumidos']==1
 
 
 @pytest.mark.parametrize('cnpj',['123','00000000000000','00065589000107','00065589000106<script>','0065589000106','１２３４５６７８９０１２３４'])
@@ -179,7 +186,7 @@ def test_durable_queue_success_failure_cancel(web):
     assert store.balance('dazumdigital')['reservados']==0
     assert store.balance('dazumdigital')['consumidos']==0
     first=store.consult(user,generated_cnpj(99998),str(uuid.uuid4()),True,True)
-    payload=query(web,KOBARG).json()['resultado']
+    payload=query(web,DAIJU).json()['resultado']
     payload['empresa']['cnpj']=generated_cnpj(99998)
     store.claim('dazumdigital'); store.finish_job(first['id'],payload); store.finish_job(first['id'],payload)
     assert store.balance('dazumdigital')['consumidos']==2

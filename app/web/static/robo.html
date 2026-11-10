@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Robô DazumCNPJ: o que acessa, como respeita o robots.txt e como bloqueá-lo.">
+  <title>Robô DazumCNPJ · DazumDigital</title>
+  <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/assets/tokens.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="shell nav">
+      <a class="brand" href="/" aria-label="DazumDigital, início"><img src="/assets/logos/dazum-wordmark-orange.svg" width="184" height="36" alt="DazumDigital"><span class="brand-caption">ROBÔ<br>DAZUMCNPJ</span></a>
+    </div>
+  </header>
+  <main class="shell robot-page">
+    <section class="guide" aria-labelledby="robot-title">
+      <div><span class="step">IDENTIFICAÇÃO DO ROBÔ</span><h1 id="robot-title">DazumCNPJ</h1><p>Robô da DazumDigital usado na plataforma interna Busca CNPJs para verificar, a partir de páginas públicas, se um site pertence a uma empresa pesquisada pelo CNPJ.</p></div>
+      <div class="robot-content">
+        <h2>Como se identifica</h2>
+        <p>Todas as requisições usam o User-Agent:</p>
+        <pre><code>DazumCNPJ/1.0 (+https://busca-cnpjs.vercel.app/robo)</code></pre>
+        <h2>O que acessa</h2>
+        <ul>
+          <li>O arquivo <code>robots.txt</code> do site e, se permitido, poucas páginas públicas: a página inicial e páginas institucionais, como contato, termos e privacidade.</li>
+          <li>No máximo 8 acessos por empresa pesquisada, um de cada vez, com intervalo mínimo de 10 segundos no mesmo site, ou o <code>Crawl-delay</code> do site, se for maior.</li>
+          <li>Somente HTTP e HTTPS em endereços públicos. Não executa JavaScript, não envia formulários e não acessa áreas com login.</li>
+          <li>Guarda apenas evidências de identificação, como título, trecho com o CNPJ e um resumo criptográfico da página. O conteúdo integral não é armazenado.</li>
+        </ul>
+        <h2>Regras que respeita</h2>
+        <ul>
+          <li>O <code>robots.txt</code> é lido conforme a RFC 9309, com as regras para <code>DazumCNPJ</code> ou para <code>*</code>. Se ele não existir ou responder com erro 4xx, vale como ausência de regras; erro 5xx suspende o acesso ao site.</li>
+          <li>Se uma página responder HTTP 403, 429 ou 503, o acesso a esse site é encerrado. Não há tentativas de contornar bloqueios.</li>
+        </ul>
+        <h2>Como bloquear</h2>
+        <p>Inclua no <code>robots.txt</code> do seu site:</p>
+        <pre><code>User-agent: DazumCNPJ
+Disallow: /</code></pre>
+        <p>O bloqueio vale a partir da próxima leitura do <code>robots.txt</code> pelo robô.</p>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><div class="shell footer-bottom"><span>© DazumDigital · Robô DazumCNPJ</span><span>Uso interno · Dados públicos</span></div></footer>
+</body>
+</html>

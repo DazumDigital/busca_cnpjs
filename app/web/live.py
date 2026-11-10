@@ -61,13 +61,17 @@ def checked_policy(control, key, organization=None, cnpjs=()):
         policy = json.loads(control['policy'])
     except (TypeError, ValueError):
         raise WebError('INTEGRACAO_NAO_VERIFICADA', 503) from None
-    if (not valid_policy(policy) or policy.get('blocked') or
-            not isinstance(policy.get('key_sha256'), str) or
-            not hmac.compare_digest(policy['key_sha256'].encode(), digest(key).encode()) or
-            organization not in policy['allowed_organizations'] or
+    # Causas distintas, sem expor detalhes da política: suspensão pelo
+    # responsável, configuração/confirmação pendente e escopo não liberado.
+    if isinstance(policy, dict) and policy.get('blocked'):
+        raise WebError('PESQUISA_SUSPENSA', 503)
+    if (not valid_policy(policy) or not isinstance(policy.get('key_sha256'), str) or
+            not hmac.compare_digest(policy['key_sha256'].encode(), digest(key).encode())):
+        raise WebError('INTEGRACAO_NAO_VERIFICADA', 503)
+    if (organization not in policy['allowed_organizations'] or
             ('allowed_cnpjs' in policy and policy['allowed_cnpjs'] is not None and
              any(cnpj not in policy['allowed_cnpjs'] for cnpj in cnpjs))):
-        raise WebError('INTEGRACAO_NAO_VERIFICADA', 503)
+        raise WebError('PESQUISA_NAO_LIBERADA', 403)
     return policy
 
 
@@ -275,7 +279,7 @@ def restart_websites(store,cnpj,clock=time.time):
         state=json.loads(job['state'])
         if not state.get('company') or not state.get('searched_at'):
             raise ValueError('Pesquisa sem busca registrada')
-        sites=candidate_sites(Company(**state['company']),cnpj,state.get('candidates',[]))
+        sites=candidate_sites(Company(**state['company']),cnpj,state.get('candidates',[]),first=state.get('google_panel_site'))
         if not sites:
             raise ValueError('Nenhum candidato a site para validar')
         runs=state.get('website_runs',[])+[dict(finished_at=job['updated_at'],web_calls=state.get('web_calls',0),

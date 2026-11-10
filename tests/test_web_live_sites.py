@@ -65,7 +65,7 @@ def providers(monkeypatch, organic, pages, calls=None):
         assert key == KEY and payload['gl'] == 'br'
         return {'organic': [{'link': link} for link in organic]}
 
-    async def fetch_one(url):
+    async def fetch_one(url, robots=False):
         calls.append(('website', url))
         page = pages.get(url)
         if page is None:
@@ -226,7 +226,7 @@ def test_robots_5xx_stops_site_with_status(monkeypatch):
     base = 'https://www.acmeparafusos.com.br/'
     calls = []
 
-    async def fetch_one(url):
+    async def fetch_one(url, robots=False):
         calls.append(url)
         return Page(url, 500, {}, '')
     monkeypatch.setattr(live_sources, 'fetch_one', fetch_one)
@@ -355,7 +355,7 @@ def test_crawl_delay_is_per_host_not_global(live_web):
 def test_website_budget_is_bounded(monkeypatch):
     calls = []
 
-    async def fetch_one(url):
+    async def fetch_one(url, robots=False):
         calls.append(url)
         if url.endswith('robots.txt'):
             return Page(url, 200, {}, '')
@@ -454,7 +454,7 @@ def test_admin_commands_never_reset_balances_and_hide_key(live_web, monkeypatch,
     assert 'key_sha256' not in status and KEY not in status and '"politica"' in status
     assert manage.main(env + ['retry-job', NEW]) == 2  # exige --confirmed-reviewed
     assert manage.main(env + ['block-external']) == 0
-    with pytest.raises(Exception, match='INTEGRACAO_NAO_VERIFICADA'):
+    with pytest.raises(Exception, match='PESQUISA_SUSPENSA'):
         live.ensure_ready(live_web[1], KEY, ORG)
     with live_web[1].engine.connect() as db:
         assert json.loads(db.execute(select(external_control.c.policy)).scalar_one())['blocked'] is True
