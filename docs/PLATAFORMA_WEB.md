@@ -136,7 +136,7 @@ node --check app/web/static/app.js
 .\.venv\Scripts\python.exe -m pip wheel --no-deps --wheel-dir dist .
 ```
 
-`app.web.build` verifica entrypoint, configuração, marca, fonte, favicon e dezesseis assets, sem tocar em banco nem rede. A suíte Python bloqueia DNS e conexões de rede; somente o socketpair interno da stdlib usado por asyncio no Windows é permitido. Testes usam mocks, fixtures históricas e bancos temporários. A verificação adicional PostgreSQL foi executada em cluster local isolado, sem acessar banco externo.
+`app.web.build` verifica entrypoint, configuração, marca, fonte, favicon e dezessete assets (inclui a página pública `/robo`), sem tocar em banco nem rede. A suíte Python bloqueia DNS e conexões de rede; somente o socketpair interno da stdlib usado por asyncio no Windows é permitido. Testes usam mocks, fixtures históricas e bancos temporários. A verificação adicional PostgreSQL foi executada em cluster local isolado, sem acessar banco externo.
 
 O wheel e as dependências com wheels Linux CPython 3.14 foram verificados. Isso não substitui a execução efetiva em Linux/Vercel. `vercel build` integral depende de projeto/ambiente vinculados e não foi apresentado como deploy validado.
 

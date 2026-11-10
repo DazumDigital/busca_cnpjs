@@ -54,7 +54,7 @@ async function authorized() {
   if(!session.autenticado) {signedOut();return;}
   state.csrf=session.csrf; state.external=session.pesquisa_externa_disponivel;
   $('current-user').textContent=session.usuario; $('current-user').title='Conectado como '+session.usuario; $('current-user').hidden=false;
-  $('batch-mode').textContent=state.external?'Resultados existentes são reaproveitados. Empresas novas são pesquisadas progressivamente, respeitando as cotas gratuitas. 1 token por consulta concluída.':'Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas. CNPJs sem registro não são cobrados.';
+  $('batch-mode').textContent=state.external?'Resultados existentes são reaproveitados. Empresas novas são pesquisadas progressivamente, respeitando as cotas gratuitas. 1 token por consulta com resultado utilizável; sem resultado, nada é cobrado.':'Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas. CNPJs sem registro não são cobrados.';
   $('login-panel').hidden=true; $('search-panel').hidden=false; $('logout').hidden=false; $('historico').hidden=false;
   await refreshBalance(); await history(); await batchHistory(); await restoreBatch();
   if(pending && validCnpj(pending.cnpj)) { $('cnpj').value=mask(pending.cnpj); await submit(pending.external); }

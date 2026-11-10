@@ -38,6 +38,7 @@ Use `$py = 'C:\Cristiano\busca_cnpjs\outputs\cnpj-enrichment\.venv\Scripts\pytho
 | Saldo de uma organização | `& $py -m app.web.manage --env-file $envfile balance --org qa-serper-weg` |
 | Liberar pesquisa falha/incerta após revisar a auditoria | `& $py -m app.web.manage --env-file $envfile retry-job 84429695000111 --confirmed-reviewed` |
 | Desativar a conta de teste preservando consultas e auditoria | `& $py -m app.web.manage --env-file $envfile deactivate-user qa.piloto.weg` |
+| Reativar uma conta desativada (organização e saldo inalterados) | `& $py -m app.web.manage --env-file $envfile activate-user qa.piloto.weg` |
 | Refazer **só a validação de sites** de uma pesquisa concluída, com os candidatos já obtidos (sem Serper e sem cadastro; exige autorização) | `& $py -m app.web.manage --env-file $envfile revalidate-sites 84429695000111 --confirmed-authorized` |
 
 `block-external` grava `blocked: true` na política: nenhuma etapa externa nova é reservada, mesmo com `WEB_ENABLE_EXTERNAL=true`. Para voltar, é preciso rodar `configure-external` com um manifesto revisado. `retry-job` não apaga o livro técnico; a próxima etapa usa um novo identificador de operação e continua contando nas cotas.
@@ -52,29 +53,65 @@ Cada clique ou passo do lote executa **uma** etapa HTTP com no máximo uma chama
 
 O `robots.txt` segue a RFC 9309: 200 é interpretado; 4xx (exceto 429) significa que não há regras e o acesso segue; 5xx encerra o candidato. O status HTTP de cada falha fica registrado na pesquisa e aparece no motivo exibido (ex.: "(HTTP 403)"). Proteções anti-robô de CDNs costumam bloquear IPs de datacenter como os da Vercel; nesses casos o candidato fica pendente, com o motivo, e nenhuma técnica de evasão é usada. Só domínios ou subdomínios com a marca da empresa aparecem como "Possíveis sites" quando não puderam ser validados; páginas de terceiros sem a marca não.
 
-Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do site, redirecionamentos) **não derrubam a consulta**: o resultado é concluído e salvo com o status `FALHA_VALIDACAO_SITE_OFICIAL` e o candidato aparece em "Possíveis sites" com o motivo. Isso consome 1 token, como qualquer consulta concluída (cadastro e busca foram entregues). Falhas no cadastro ou na busca continuam sem desconto. Se a cota total de websites do manifesto acabar no meio da validação, a consulta também é concluída localmente com o que já foi obtido, sem nova chamada.
+Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do site, redirecionamentos) **não derrubam a consulta**: o resultado é concluído e salvo com o status `FALHA_VALIDACAO_SITE_OFICIAL` e o candidato aparece em "Possíveis sites" com o motivo. Se a cota total de websites do manifesto acabar no meio da validação, a consulta também é concluída localmente com o que já foi obtido, sem nova chamada.
+
+### Regra de tokens (aprovada em 09/11/2026)
+
+- **1 token** quando a consulta é concluída com **resultado utilizável**: site oficial confirmado, possível site, referência de terceiro ou rede social. Vale mesmo que o site oficial não possa ser validado.
+- **Nenhum token** sem resultado utilizável (só dados cadastrais, nenhum link), inclusive ao reabrir um resultado histórico nessas condições; o resultado informa "Nenhum token foi consumido".
+- **Nenhum token** por CNPJ inválido, falha técnica, CNPJ ausente na base cadastral, cota esgotada ou pesquisa interrompida.
+- O livro de tokens tem a consulta como chave: repetir a etapa, recarregar a página ou reenviar a mesma operação nunca duplica o desconto. Revalidar sites (`revalidate-sites`) não cobra de novo.
+
+### Classificação exibida
+
+- **Site oficial confirmado**: CNPJ exato, nome, titularidade em rodapé/página legal, marca no título e domínio da marca.
+- **Possível site**: domínio ou subdomínio com a marca, ou indicado pelo painel do Google, ainda não confirmado; mostra o motivo quando a validação falhou (ex.: "(HTTP 403)"). O selo **"Indicado pelo painel do Google"** nunca torna o site oficial; só a URL é guardada.
+- **Referência de terceiro**: diretórios e páginas com o CNPJ exato ou nome e município.
+- **Rede social**: perfil com a marca no endereço, vínculo não confirmado.
+
+### Robô e mensagens
+
+O robô se identifica como `DazumCNPJ/1.0 (+https://busca-cnpjs.vercel.app/robo)`; a página pública `/robo` explica o que ele acessa e como bloqueá-lo (`User-agent: DazumCNPJ` / `Disallow: /`). O `robots.txt` é lido nos primeiros 500 KiB, de qualquer tipo de conteúdo; linhas inválidas, longas ou HTML são ignoradas e só as regras para `*` ou `DazumCNPJ` ficam no estado.
+
+| Código | Quando | Mensagem para a equipe |
+|---|---|---|
+| `PESQUISA_NAO_LIBERADA` (403) | Organização ou CNPJ fora da política | Conta não liberada para pesquisas externas deste CNPJ |
+| `PESQUISA_SUSPENSA` (503) | Política bloqueada (`block-external` ou recusa da Serper) | Pesquisa suspensa pelo responsável |
+| `INTEGRACAO_NAO_VERIFICADA` (503) | Sem política, chave diferente ou confirmação de saldo vencida | Aguarda configuração ou renovação da confirmação |
+| `LIMITE_CONSULTAS` (429) | Mais de 20 consultas ou lotes por minuto na organização | Limite de consultas por minuto; nada cobrado |
+| `COTA_EXTERNA_ESGOTADA` | Teto total aprovado atingido | Limite de pesquisas externas atingido |
+
+Esperas de 2 minutos ou mais (janelas por hora ou dia) aparecem como "Limite de pesquisas do período atingido", com o tempo estimado; o progresso fica salvo.
 
 Limite temporário (HTTP 429) do cadastro ou da busca pausa a etapa até o cooldown (mínimo 60 s), no máximo 3 vezes; depois disso a pesquisa falha sem desconto.
 
-## Liberação para a equipe (somente após decisão separada)
+## Liberação gradual para a equipe (aprovada em 09/11/2026)
 
-Manifesto sugerido para a organização da equipe, com `allowed_cnpjs` omitido (qualquer CNPJ válido) e saldo reconferido no painel da Serper. `balance_valid_hours` permite até 720 h (30 dias) de validade da conferência quando a conta não tem meio de pagamento; o padrão continua 24 h. O consumo desde `balance_verified_at` nunca passa de `confirmed_free_remaining`.
+Os tetos `max_requests` são **acumulados** com o livro técnico do Neon. Consumo já registrado (piloto WEG): Serper 1, Minha Receita 1, sites 8. Confira com `external-status` e some a margem aprovada. `balance_valid_hours` aceita até 720 h quando a conta Serper não tem meio de pagamento; o consumo desde `balance_verified_at` nunca passa de `confirmed_free_remaining`. Cada etapa exige nova conferência do Billing da Serper e autorização no chat.
+
+| Etapa | Escopo | Serper (novas) | Minha Receita (novas) | Sites (novos) |
+|---|---|---|---|---|
+| 1a — validação | `dazumdigital`, só os 5 CNPJs confirmados pelo proprietário (`allowed_cnpjs`) | limites da etapa 1; na prática até 5 (uma busca por CNPJ) | limites da etapa 1; na prática até 5 | limites da etapa 1; até 8 por CNPJ (40) |
+| 1b — uso inicial | `dazumdigital`, qualquer CNPJ válido | 30 no total · 2/min · 20/h · 30/dia | 60 · 4/min · 40/h · 60/dia | 240 · 12/min · 200/h · 240/dia |
+| 2 — teto aprovado | `dazumdigital`, qualquer CNPJ, após homologar um lote real de até 15 | 500 · 5/min · 60/h · 150/dia | 1.000 · 10/min · 120/h · 300/dia | 4.000 · 30/min · 600/h · 2.000/dia |
+
+Manifesto da etapa 1b (valores acumulados com o piloto: 1 + 30, 1 + 60, 8 + 240). Na etapa 1a, acrescente `"allowed_cnpjs"` com os 5 CNPJs, sem pontuação.
 
 ```json
 {
   "allowed_organizations": ["dazumdigital"],
-  "serper": {"max_requests": 300, "per_minute": 2, "per_hour": 20, "per_day": 60,
-             "confirmed_free_remaining": 2400, "balance_verified_at": "AAAA-MM-DDTHH:MM:SS+00:00",
+  "serper": {"max_requests": 31, "per_minute": 2, "per_hour": 20, "per_day": 30,
+             "confirmed_free_remaining": 2467, "balance_verified_at": "AAAA-MM-DDTHH:MM:SS+00:00",
              "balance_valid_hours": 168, "reviewed_on": "AAAA-MM-DD", "expires_on": "AAAA-MM-DD",
-             "evidence": "Billing sem meio de pagamento, sem recarga, saldo conferido em ...",
+             "evidence": "Billing conferido pelo proprietário: saldo, sem cartão, sem pagamentos, auto top-up desabilitado",
              "verified": true, "free_only": true, "no_card": true, "no_auto_charge": true,
              "no_paid_credits": true, "storage_permitted": true, "batch_permitted": true},
-  "minhareceita": {"max_requests": 2000, "per_minute": 6, "per_hour": 60, "per_day": 300},
-  "websites": {"max_requests": 5000, "per_minute": 6, "per_hour": 240, "per_day": 1000, "min_interval": 10}
+  "minhareceita": {"max_requests": 61, "per_minute": 4, "per_hour": 40, "per_day": 60},
+  "websites": {"max_requests": 248, "per_minute": 12, "per_hour": 200, "per_day": 240, "min_interval": 0}
 }
 ```
 
-Os tetos `max_requests` são acumulados com o histórico já registrado no Neon: some o consumo técnico atual (`external-status`) à margem autorizada. Com `per_minute: 2` na Serper, um lote de 15 CNPJs novos leva cerca de 8 minutos só na etapa de busca, mais a validação dos sites; a página mostra a espera e retoma sozinha enquanto estiver aberta.
+Nos sites, `min_interval: 0` evita uma fila global; o intervalo de pelo menos 10 s (ou o `Crawl-delay`) continua valendo **por site**. Os lotes avançam em rodízio: com 2 buscas Serper por minuto, um lote de 15 CNPJs novos leva cerca de 8 minutos com a página aberta; com 5 por minuto (etapa 2), cerca de 3 a 4 minutos.
 
 ## Cotas e retomada
 
