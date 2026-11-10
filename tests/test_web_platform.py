@@ -66,9 +66,9 @@ def test_initial_balance_import_and_restart(web, source):
     before=hashlib.sha256(source.read_bytes()).hexdigest()
     assert import_consolidation(store,source)['importacao_nova'] is False
     assert hashlib.sha256(source.read_bytes()).hexdigest()==before
-    query(web)
+    query(web)  # resultado salvo: reaproveitado sem custo
     fresh=Store(config.database_url); fresh.initialize()
-    assert fresh.balance('dazumdigital')['disponiveis']==2468
+    assert fresh.balance('dazumdigital')['disponiveis']==2469
     with fresh.engine.connect() as db:
         assert db.execute(select(func.count()).select_from(companies)).scalar()==20
         assert db.execute(select(func.count()).select_from(imports)).scalar()==1
@@ -81,25 +81,26 @@ def test_real_classifications(web,cnpj,field):
     assert response.status_code==200,response.text
     result=response.json()['resultado']
     assert result[field]
-    assert response.json()['saldo']['consumidos']==1
+    assert response.json()['saldo']['consumidos']==0 and response.json()['token_consumido'] is False
     if cnpj!=DAIJU:assert result['website_oficial'] is None
     if cnpj==BOSCHETTI:
         farm=next(r for r in result['referencias'] if 'farmby' in r['url'])
         assert farm['confianca']=='BAIXA' and farm['ressalvas']
 
 
-def test_without_usable_links_no_token(web):
-    # Regra aprovada em 09/11/2026: sem site, referência ou rede social não há
-    # resultado utilizável, então não há desconto (nem em releituras).
-    data=query(web,KOBARG).json()
-    result=data['resultado']
-    assert not result['referencias'] and not result['possiveis_sites'] and not result['redes_sociais']
-    assert result['website_oficial'] is None and data['status']=='CONCLUIDA'
-    assert data['saldo']['consumidos']==0 and data['saldo']['reservados']==0 and data['token_consumido'] is False
-    assert any('Nenhum token foi consumido' in note for note in result['ressalvas'])
-    assert query(web,KOBARG).json()['saldo']['consumidos']==0
-    useful=query(web,DAIJU).json()
-    assert useful['token_consumido'] is True and useful['saldo']['consumidos']==1
+def test_saved_results_are_reused_without_token(web):
+    # Regra de 10/11/2026: reaproveitar um resultado já salvo não é pesquisa
+    # nova e não custa token; a tela informa isso explicitamente.
+    for cnpj in (KOBARG, DAIJU, KOBARG):
+        data=query(web,cnpj).json()
+        assert data['status']=='CONCLUIDA' and data['resultado']['origem_resultado']=='HISTORICO'
+        assert data['token_consumido'] is False and data['saldo']['consumidos']==0 and data['saldo']['reservados']==0
+        assert any('reaproveitado sem nova busca' in note for note in data['resultado']['ressalvas'])
+    with web[1].engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(charges)).scalar()==0
+    # Reaproveitar funciona mesmo sem saldo livre.
+    with web[1].transaction() as db:db.execute(update(organizations).values(initial_tokens=0))
+    assert query(web,DAIJU).status_code==200
 
 
 @pytest.mark.parametrize('cnpj',['123','00000000000000','00065589000107','00065589000106<script>','0065589000106','１２３４５６７８９０１２３４'])
@@ -109,17 +110,20 @@ def test_invalid_not_charged(web,cnpj):
 
 
 def test_formatted_cnpj_and_cached_different_operation(web):
-    assert query(web,'00.065.589/0001-06').status_code==200
-    assert query(web,DAIJU).json()['saldo']['consumidos']==2
+    first=query(web,'00.065.589/0001-06').json(); second=query(web,DAIJU).json()
+    assert first['cnpj']==second['cnpj']==DAIJU and first['id']!=second['id']
+    assert second['saldo']['consumidos']==0
 
 
 def test_idempotent_duplicate_retry_reload(web):
     key=str(uuid.uuid4())
     first=query(web,key=key).json(); second=query(web,key=key).json()
     assert first['id']==second['id']
-    assert second['saldo']['consumidos']==1
-    assert web[0].get('/api/consultas/'+first['id']).json()['saldo']['consumidos']==1
+    assert second['saldo']['consumidos']==0
+    assert web[0].get('/api/consultas/'+first['id']).json()['saldo']['consumidos']==0
     assert query(web,THP,key=key).status_code==409
+    with web[1].engine.connect() as db:
+        assert db.execute(select(func.count()).select_from(consultations)).scalar()==1
 
 
 def test_concurrent_duplicates_and_users(web):
@@ -129,26 +133,29 @@ def test_concurrent_duplicates_and_users(web):
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         results=list(pool.map(lambda _:store.consult(user,DAIJU,key),range(12)))
     assert len({r['id'] for r in results})==1
-    assert store.balance('dazumdigital')['consumidos']==1
     create_user(store,'colega','Outra-senha-123')
     with store.engine.connect() as db: colleague=dict(db.execute(select(users).where(users.c.username=='colega')).mappings().one())
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         results=list(pool.map(lambda i:store.consult(user if i%2 else colleague,DAIJU,str(uuid.uuid4())),range(12)))
-    assert store.balance('dazumdigital')['consumidos']==13
-    with store.engine.connect() as db: assert db.execute(select(func.count()).select_from(charges)).scalar()==13
+    assert len({r['id'] for r in results})==12 and all(r['status']=='CONCLUIDA' for r in results)
+    assert store.balance('dazumdigital')=={'disponiveis':2469,'consumidos':0,'reservados':0,'consultas_concluidas':0}
+    with store.engine.connect() as db: assert db.execute(select(func.count()).select_from(charges)).scalar()==0
 
 
 def test_zero_balance_concurrent(web):
+    # Cinco pesquisas novas disputam o último token: só uma reserva.
+    from conftest import generated_cnpj
     _,store,_,_=web
     with store.transaction() as db:
         db.execute(update(organizations).values(initial_tokens=1))
         user=dict(db.execute(select(users)).mappings().one())
-    def run(_):
-        try:return store.consult(user,DAIJU,str(uuid.uuid4()))['status']
+    def run(i):
+        try:return store.consult(user,generated_cnpj(880000+i),str(uuid.uuid4()),True,True)['status']
         except WebError as exc:return exc.code
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool: answers=list(pool.map(run,range(5)))
-    assert answers.count('CONCLUIDA')==1 and answers.count('SALDO_INSUFICIENTE')==4
-    assert query(web).status_code==402
+    assert answers.count('NA_FILA')==1 and answers.count('SALDO_INSUFICIENTE')==4
+    assert store.balance('dazumdigital')['reservados']==1 and store.balance('dazumdigital')['disponiveis']==0
+    assert query(web).status_code==200  # resultado salvo continua acessível sem saldo
 
 
 def test_internal_failure_rollback_no_charge(web,monkeypatch,caplog):
@@ -189,7 +196,9 @@ def test_durable_queue_success_failure_cancel(web):
     payload=query(web,DAIJU).json()['resultado']
     payload['empresa']['cnpj']=generated_cnpj(99998)
     store.claim('dazumdigital'); store.finish_job(first['id'],payload); store.finish_job(first['id'],payload)
-    assert store.balance('dazumdigital')['consumidos']==2
+    # Só a pesquisa real concluída custa: reaproveitar DAIJU acima foi grátis e
+    # repetir finish_job não duplica o desconto.
+    assert store.balance('dazumdigital')['consumidos']==1
     assert store.balance('dazumdigital')['reservados']==0
 
 

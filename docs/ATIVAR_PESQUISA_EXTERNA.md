@@ -55,19 +55,24 @@ O `robots.txt` segue a RFC 9309: 200 é interpretado; 4xx (exceto 429) significa
 
 Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do site, redirecionamentos) **não derrubam a consulta**: o resultado é concluído e salvo com o status `FALHA_VALIDACAO_SITE_OFICIAL` e o candidato aparece em "Possíveis sites" com o motivo. Se a cota total de websites do manifesto acabar no meio da validação, a consulta também é concluída localmente com o que já foi obtido, sem nova chamada.
 
-### Regra de tokens (aprovada em 09/11/2026)
+### Regra de tokens (aprovada em 10/11/2026; substitui a de 09/11)
 
-- **1 token** quando a consulta é concluída com **resultado utilizável**: site oficial confirmado, possível site, referência de terceiro ou rede social. Vale mesmo que o site oficial não possa ser validado.
-- **Nenhum token** sem resultado utilizável (só dados cadastrais, nenhum link), inclusive ao reabrir um resultado histórico nessas condições; o resultado informa "Nenhum token foi consumido".
-- **Nenhum token** por CNPJ inválido, falha técnica, CNPJ ausente na base cadastral, cota esgotada ou pesquisa interrompida.
-- O livro de tokens tem a consulta como chave: repetir a etapa, recarregar a página ou reenviar a mesma operação nunca duplica o desconto. Revalidar sites (`revalidate-sites`) não cobra de novo.
+- **1 token** por **pesquisa real concluída**: cadastro e busca responderam e o resultado foi salvo, com ou sem site oficial confirmado e mesmo sem links.
+- **Sem custo**: CNPJ inválido; pesquisa bloqueada antes de executar (política, cota, limite); falha técnica que impeça a conclusão (cadastro ou busca); CNPJ ausente na base cadastral; reabrir ou recarregar uma consulta; revalidar sites (`revalidate-sites`).
+- **CNPJ já pesquisado**: o resultado salvo é **reaproveitado sem custo**, com aviso "Resultado já salvo, reaproveitado: nenhum token consumido". Não há nova cobrança sem pesquisa nova. Isso vale também para os 20 registros históricos e para itens de lote (a reserva feita na criação do lote é devolvida).
+- **Atomicidade**: o débito acontece na mesma transação que conclui a consulta; o livro de tokens tem a consulta como chave, então cliques repetidos, concorrência, falha e retomada nunca duplicam o desconto. Cada débito fica registrado com data, organização e consulta.
+- A tela mostra o saldo antes da pesquisa e, ao concluir, "1 token consumido nesta pesquisa · saldo X → Y".
 
 ### Classificação exibida
 
 - **Site oficial confirmado**: CNPJ exato, nome, titularidade em rodapé/página legal, marca no título e domínio da marca.
-- **Possível site**: domínio ou subdomínio com a marca, ou indicado pelo painel do Google, ainda não confirmado; mostra o motivo quando a validação falhou (ex.: "(HTTP 403)"). O selo **"Indicado pelo painel do Google"** nunca torna o site oficial; só a URL é guardada.
+- **Site da matriz (filial)**: para CNPJ de filial, site no domínio da marca que mostra só inscrições da mesma raiz, incluindo a da matriz (0001). Indica o site do grupo; **não confirma a filial**.
+- **Possível site**: domínio ou subdomínio com a marca, ainda não confirmado; mostra o motivo quando a validação falhou (ex.: "(HTTP 403)"). Bloqueios de validação não escondem o possível site.
+- **Indicado pelo painel do Google**: grupo próprio para o site informado pelo painel do Google na busca; nunca vira oficial por isso. Só a URL é guardada.
 - **Referência de terceiro**: diretórios e páginas com o CNPJ exato ou nome e município.
 - **Rede social**: perfil com a marca no endereço, vínculo não confirmado.
+
+As exportações CSV/XLSX trazem duas colunas novas no fim ("Site da matriz (filial)" e "Indicado pelo painel do Google"), sem deslocar as existentes.
 
 ### Robô e mensagens
 
@@ -112,6 +117,16 @@ Manifesto da etapa 1b (valores acumulados com o piloto: 1 + 30, 1 + 60, 8 + 240)
 ```
 
 Nos sites, `min_interval: 0` evita uma fila global; o intervalo de pelo menos 10 s (ou o `Crawl-delay`) continua valendo **por site**. Os lotes avançam em rodízio: com 2 buscas Serper por minuto, um lote de 15 CNPJs novos leva cerca de 8 minutos com a página aberta; com 5 por minuto (etapa 2), cerca de 3 a 4 minutos.
+
+## Processamento de lotes: como funciona e limites
+
+- A fila é **persistente no Neon** (consultas, itens de lote e pesquisas). Cada etapa externa é uma requisição curta, com no máximo uma chamada a uma fonte.
+- **Quem aciona as etapas é a página aberta**: os itens avançam em rodízio (um item esperando não trava os outros). Fechar a página **pausa** sem perder nada; reabrir o lote pelo histórico retoma do ponto em que parou, sem cobrar de novo.
+- **Não há processamento em segundo plano** hoje.
+- Limites da Vercel no plano Hobby (documentação oficial conferida em 10/11/2026): cron jobs no máximo **uma vez por dia**; "Schedules" no máximo **a cada 15 minutos**, com variação de até 15 minutos; funções até 300 s (o projeto usa 30 s).
+- Opções para rodar sem a aba aberta, **a decidir**:
+  - **A (sem custo):** um agendamento da Vercel a cada 15 minutos chama um endpoint protegido que avança os lotes pendentes por alguns minutos. Um lote de 15 terminaria em cerca de 15 a 45 minutos. Exige implementação, testes e aprovação.
+  - **B (pago):** plano Pro, com cron por minuto. Exige aprovação financeira.
 
 ## Cotas e retomada
 

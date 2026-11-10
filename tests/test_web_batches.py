@@ -44,22 +44,20 @@ def test_batches_process_exactly_once_and_persist(web, n):
     assert batch['saldo']['consumidos'] == 0 and batch['saldo']['reservados'] == n
     assert create(web, '\n'.join(cnps(web,n)), key).json()['id'] == batch['id']
     assert web[0].get('/api/lotes/'+batch['id']).json()['progresso']['pendentes'] == n
-    from app.web.store import usable
-    expected = 0
+    # Regra de 10/11/2026: resultados já salvos são reaproveitados sem custo; a
+    # reserva feita na criação do lote é devolvida item a item.
     for i, item in enumerate(batch['itens'], 1):
         result = step(web,batch,item).json()
-        with web[1].engine.connect() as db:
-            saved = json.loads(db.execute(select(companies.c.payload).where(companies.c.cnpj == item['cnpj'])).scalar_one())
-        expected += usable(saved)  # 1 token só com resultado utilizável
         assert result['progresso']['concluidos'] == i
-        assert result['saldo']['consumidos'] == expected == result['progresso']['tokens_consumidos']
-        assert step(web,batch,item).json()['saldo']['consumidos'] == expected
+        assert result['saldo']['consumidos'] == 0 == result['progresso']['tokens_consumidos']
+        assert result['saldo']['reservados'] == n - i
+        assert step(web,batch,item).json()['saldo']['reservados'] == n - i
         fresh = Store(web[3].database_url)
         assert service.get_batch(fresh,user(web),batch['id'])['progresso']['concluidos'] == i
     assert result['status'] == 'CONCLUIDO' and result['saldo']['reservados'] == 0
-    assert result['saldo']['disponiveis'] == 2469 - expected
+    assert result['saldo']['disponiveis'] == 2469 and all(i['token_consumido'] is False for i in result['itens'])
     with web[1].engine.connect() as db:
-        assert db.execute(select(func.count()).select_from(charges)).scalar() == expected
+        assert db.execute(select(func.count()).select_from(charges)).scalar() == 0
 
 
 def test_sixteen_rejected_before_reservation(web):
@@ -88,7 +86,7 @@ def test_unknown_company_is_not_charged_or_researched(web):
     for item in batch['itens']:result=step(web,batch,item).json()
     assert result['status'] == 'CONCLUIDO_COM_ERROS'
     assert result['progresso']['concluidos'] == 1 and result['progresso']['erros'] == 1
-    assert result['saldo']['consumidos'] == 1 and result['saldo']['reservados'] == 0
+    assert result['saldo']['consumidos'] == 0 and result['saldo']['reservados'] == 0
     assert result['itens'][1]['erro'] == 'EMPRESA_NAO_PESQUISADA'
     assert result['pesquisa_externa'] is False
 
@@ -104,7 +102,7 @@ def test_network_retry_same_item_does_not_advance(web):
     first = step(web,batch,batch['itens'][0]).json()
     again = step(web,batch,batch['itens'][0]).json()
     assert first['progresso'] == again['progresso']
-    assert again['progresso']['pendentes'] == 1 and again['saldo']['consumidos'] == 1
+    assert again['progresso']['pendentes'] == 1 and again['saldo']['consumidos'] == 0 and again['saldo']['reservados'] == 1
 
 
 def test_failure_rolls_back_and_resumes_without_double_charge(web, monkeypatch):
@@ -118,7 +116,8 @@ def test_failure_rolls_back_and_resumes_without_double_charge(web, monkeypatch):
     assert web[1].balance('dazumdigital')['consumidos']==0
     assert web[1].balance('dazumdigital')['reservados']==1
     monkeypatch.setattr(web[1],'complete',original)
-    assert step(web,batch,batch['itens'][0]).json()['saldo']['consumidos']==1
+    resumed=step(web,batch,batch['itens'][0]).json()
+    assert resumed['saldo']['consumidos']==0 and resumed['saldo']['reservados']==0 and resumed['progresso']['concluidos']==1
 
 
 def test_concurrent_creations_and_steps(web):
@@ -130,7 +129,7 @@ def test_concurrent_creations_and_steps(web):
     batch=results[0]
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
         list(pool.map(lambda _:service.step_batch(store,identity,batch['id'],batch['itens'][0]['id']),range(12)))
-    assert store.balance('dazumdigital')['consumidos']==1
+    assert store.balance('dazumdigital')['consumidos']==0 and store.balance('dazumdigital')['reservados']==1
     assert service.get_batch(store,identity,batch['id'])['progresso']['pendentes']==1
 
 
@@ -149,7 +148,7 @@ def test_cancel_is_idempotent_and_preserves_completed_items(web):
     endpoint='/api/lotes/'+batch['id']+'/cancelar'
     first=web[0].post(endpoint,headers=web[2]).json();second=web[0].post(endpoint,headers=web[2]).json()
     assert first['progresso']==second['progresso']
-    assert second['saldo']['consumidos']==1 and second['saldo']['reservados']==0
+    assert second['saldo']['consumidos']==0 and second['saldo']['reservados']==0
 
 
 def test_mutations_require_origin_csrf_and_owner(web):

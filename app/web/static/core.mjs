@@ -73,11 +73,25 @@ export function nextBatchItem(items, notBefore, now) {
   if (ready) return {item:ready, wait:0};
   return {item:null, wait:Math.max(1, Math.min(...pending.map(i => notBefore.get(i.id))) - now)};
 }
+// Token line under a finished consultation: what it cost and the balance before → after.
+export function tokenNote(data, before) {
+  const after = data?.saldo?.disponiveis;
+  if (!data || data.status !== 'CONCLUIDA' || typeof after !== 'number') return '';
+  const fmt = n => new Intl.NumberFormat('pt-BR').format(n);
+  if (data.token_consumido === true) {
+    return typeof before === 'number' && before > after
+      ? `1 token consumido nesta pesquisa · saldo ${fmt(before)} → ${fmt(after)}.`
+      : '1 token consumido nesta pesquisa.';
+  }
+  return `Resultado já salvo, reaproveitado: nenhum token consumido · saldo ${fmt(after)}.`;
+}
 export function groups(result) {
   return [
     {key:'oficial', title:'Site oficial', items:result.website_oficial ? [result.website_oficial] : []},
     {key:'manual', title:'Verificação manual informada', items:result.verificacao_manual ? [result.verificacao_manual] : []},
+    {key:'matriz', title:'Site da matriz · filial não confirmada', items:result.site_matriz || []},
     {key:'possiveis', title:'Possíveis sites · para revisão', items:result.possiveis_sites || []},
+    {key:'google', title:'Indicado pelo painel do Google · não confirmado', items:result.indicado_google || []},
     {key:'sociais', title:'Redes sociais · vínculo não confirmado', items:result.redes_sociais || []},
     {key:'referencias', title:'Referências de terceiros', items:result.referencias || []},
   ];
