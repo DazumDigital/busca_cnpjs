@@ -17,3 +17,11 @@
 @media(max-width:540px){.hero{padding:26px 0 24px;gap:23px}.hero h1{font-size:36px;margin:17px 0 16px}.hero-caption{display:none}.wallet{padding:18px 21px 16px}.wallet-top{margin-bottom:10px}.wallet-bottom{top:69px;right:21px}.wallet .token-line{min-height:49px}.wallet .token-line strong{font-size:42px}.wallet p.wallet-note{margin-top:6px}.search-heading h2{font-size:22px}}
 @media(max-width:360px){.hero h1{font-size:34px}.nav-link{font-size:9px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.001ms!important;animation-delay:0ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}.reveal{opacity:1;transform:none}.spinner{animation:none!important;border-right-color:currentColor;border-style:dotted}}
+.user-label{font-size:11px;font-weight:500;color:var(--navy);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.google-note{font-size:11px;font-weight:500;color:var(--navy-link);margin-top:8px}
+.robot-page .guide{margin-top:24px}.robot-page h1{font-size:40px;margin-top:10px}
+.robot-content h2{font-size:18px;margin:26px 0 8px;max-width:none}.robot-content h2:first-child{margin-top:0}
+.robot-content p,.robot-content li{font-size:14px;line-height:1.7;color:var(--body)}.robot-content ul{padding-left:18px}
+.robot-content pre{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;overflow-x:auto;font-size:13px;margin:8px 0}
+@media(max-width:760px){.robot-page .guide{grid-template-columns:1fr;gap:20px}}
+@media(max-width:540px){.user-label{max-width:88px;font-size:10px}.robot-page h1{font-size:32px}}

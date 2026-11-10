@@ -45,8 +45,17 @@ const FAILURES = {
   ACESSO_NEGADO:'Pesquisa externa suspensa até revisão do responsável. Nenhum token foi consumido.',
   LIMITE_TEMPORARIO:'Fonte externa temporariamente limitada. Tente mais tarde. Nenhum token foi consumido.',
   ETAPA_INTERROMPIDA:'A pesquisa foi interrompida durante uma chamada externa e não foi repetida, para evitar consumo duplicado. O responsável pode liberá-la após revisão. Nenhum token foi consumido.',
-  INTEGRACAO_NAO_VERIFICADA:'Pesquisa externa não liberada para esta conta ou CNPJ. Nenhum token foi consumido.',
+  INTEGRACAO_NAO_VERIFICADA:'A pesquisa externa aguarda configuração ou renovação da confirmação pelo responsável. Nenhum token foi consumido.',
+  PESQUISA_SUSPENSA:'A pesquisa externa está suspensa pelo responsável. Nenhum token foi consumido.',
+  PESQUISA_NAO_LIBERADA:'Sua conta não está liberada para pesquisas externas deste CNPJ. Nenhum token foi consumido.',
+  LIMITE_CONSULTAS:'Limite de consultas por minuto atingido. Aguarde um minuto; nada foi cobrado.',
 };
+// Short waits are politeness delays; long ones mean an hourly/daily quota window.
+export function waitMessage(seconds) {
+  const value = Math.max(1, Math.ceil(Number(seconds) || 0));
+  if (value >= 120) return `Limite de pesquisas do período atingido. O progresso fica salvo e a pesquisa continua em cerca de ${Math.ceil(value / 60)} min, com a página aberta ou ao reabrir.`;
+  return `Aguardando o intervalo seguro entre acessos: próxima verificação em ${value}s.`;
+}
 // Only fixed codes are mapped; unknown codes never echo provider text.
 export function failureMessage(code) { return Object.hasOwn(FAILURES, code) ? FAILURES[code] : TECHNICAL; }
 // A consultation keeps stepping while it is queued, or while an authorized

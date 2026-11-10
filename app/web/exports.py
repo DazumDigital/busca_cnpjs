@@ -33,6 +33,7 @@ def rows(items):
                     continue
                 details = dict(categoria=category, url=link['url'], tipo=link.get('tipo'),
                     confianca=link.get('confianca'), evidencia=link.get('evidencia'),
+                    indicado_google=link.get('indicado_google', False),
                     ressalvas=link.get('ressalvas', []), paginas=link.get('paginas', []))
                 evidence.append(details)
                 links.append([item['cnpj'], category, link['url'], text(link.get('tipo')),

@@ -85,6 +85,16 @@ def digest(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+NO_USABLE_RESULT = 'Sem resultado utilizável: nenhum site, referência ou rede social foi encontrado. Nenhum token foi consumido.'
+
+
+def usable(payload):
+    """Há algo útil além do cadastro: site oficial, verificação manual, possível
+    site, referência de terceiro ou perfil social."""
+    return bool(payload.get('website_oficial') or payload.get('verificacao_manual') or payload.get('possiveis_sites')
+                or payload.get('referencias') or payload.get('redes_sociais'))
+
+
 class Store:
     def __init__(self, url):
         if not url:
@@ -142,14 +152,14 @@ class Store:
         return dict(disponiveis=row['initial_tokens'] - row['consumed'] - row['reserved'], consumidos=row['consumed'],
                     reservados=row['reserved'], consultas_concluidas=row['consumed'])
 
-    def throttle(self, key, limit, seconds=60):
+    def throttle(self, key, limit, seconds=60, code='MUITAS_TENTATIVAS'):
         now = time.time()
         with self.transaction() as conn:
             self.upsert(conn, rates, dict(key=key, started_at=now, count=0), ['key'])
             row = conn.execute(select(rates).where(rates.c.key == key).with_for_update()).mappings().one()
             count, start = (0, now) if now - row['started_at'] >= seconds else (row['count'], row['started_at'])
             if count >= limit:
-                raise WebError('MUITAS_TENTATIVAS', 429)
+                raise WebError(code, 429)
             conn.execute(update(rates).where(rates.c.key == key).values(count=count+1, started_at=start))
 
     def authenticate(self, token):
@@ -165,6 +175,8 @@ class Store:
         return dict(id=row['id'], cnpj=row['cnpj'], status=row['status'], resultado=json.loads(row['result']) if row['result'] else None,
                     criado_em=row['created_at'], saldo=self.balance(row['organization_id'], conn),
                     erro=self.failure_code(conn, row) if row['status'] == 'FALHOU' else None,
+                    token_consumido=conn.execute(select(charges.c.consultation_id).where(
+                        charges.c.consultation_id == row['id'])).first() is not None,
                     revalidacao_pendente=row['status'] == 'CONCLUIDA' and self.revalidation_pending(conn, row['cnpj']))
 
     def revalidation_pending(self, conn, cnpj):
@@ -193,11 +205,21 @@ class Store:
             return self.view(row, conn)
 
     def complete(self, conn, row, payload, reserved=False):
-        conn.execute(insert(charges).values(consultation_id=row['id'], organization_id=row['organization_id'], amount=1, created_at=time.time()))
-        conn.execute(update(organizations).where(organizations.c.id == row['organization_id']).values(
-            consumed=organizations.c.consumed+1, reserved=organizations.c.reserved-(1 if reserved else 0)))
+        """Conclui a consulta. Cobra 1 token só com resultado utilizável; o
+        ledger tem a consulta como chave primária e impede débito duplicado."""
+        if usable(payload):
+            conn.execute(insert(charges).values(consultation_id=row['id'], organization_id=row['organization_id'], amount=1, created_at=time.time()))
+            conn.execute(update(organizations).where(organizations.c.id == row['organization_id']).values(
+                consumed=organizations.c.consumed+1, reserved=organizations.c.reserved-(1 if reserved else 0)))
+        else:
+            payload = dict(payload, ressalvas=list(payload.get('ressalvas', [])) + [NO_USABLE_RESULT])
+            if reserved:
+                conn.execute(update(organizations).where(organizations.c.id == row['organization_id']).values(
+                    reserved=organizations.c.reserved-1))
+        packed = json.dumps(payload, ensure_ascii=False)
         conn.execute(update(consultations).where(consultations.c.id == row['id']).values(
-            status='CONCLUIDA', result=json.dumps(payload, ensure_ascii=False), finished_at=time.time()))
+            status='CONCLUIDA', result=packed, finished_at=time.time()))
+        return packed
 
     def consult(self, user, cnpj, key, allow_external=False, external_authorized=False):
         with self.transaction() as conn:
@@ -218,9 +240,7 @@ class Store:
             if saved:
                 payload = json.loads(saved)
                 payload['origem_resultado'] = 'HISTORICO'
-                saved = json.dumps(payload, ensure_ascii=False)
-                self.complete(conn, row, payload)
-                row.update(status='CONCLUIDA', result=saved)
+                row.update(status='CONCLUIDA', result=self.complete(conn, row, payload))
             else:
                 conn.execute(update(organizations).where(organizations.c.id == org['id']).values(reserved=organizations.c.reserved+1))
             return self.view(row, conn)

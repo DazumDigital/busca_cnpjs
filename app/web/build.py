@@ -9,7 +9,7 @@ from app.web.config import ROOT
 
 def main():
     static = ROOT / 'app/web/static'
-    expected = ['index.html', 'tokens.css', 'styles.css', 'app.js', 'core.mjs', 'favicon.ico',
+    expected = ['index.html', 'robo.html', 'tokens.css', 'styles.css', 'app.js', 'core.mjs', 'favicon.ico',
                 'logos/dazum-wordmark-orange.svg', 'logos/dazum-wordmark-cream.svg',
                 'logos/dazum-square-orange.svg', 'logos/dazum-square-cream.svg',
                 'fonts/Poppins-Light.ttf', 'fonts/Poppins-Regular.ttf', 'fonts/Poppins-Medium.ttf',
@@ -31,7 +31,7 @@ def main():
     assert config['git']['deploymentEnabled'] is False
     html = (static / 'index.html').read_text(encoding='utf-8')
     assert all(f'/assets/{name}' in html for name in ('tokens.css', 'styles.css', 'app.js', 'favicon.ico'))
-    for name in ['index.html', 'styles.css', 'app.js']:
+    for name in ['index.html', 'robo.html', 'styles.css', 'app.js']:
         source = (static / name).read_text(encoding='utf-8')
         assert 'serper' not in source.lower() and 'api_key' not in source.lower()
     assert 'prefers-reduced-motion' in (static / 'styles.css').read_text(encoding='utf-8')

@@ -18,7 +18,11 @@ from app.services.site_rules import (RULES, RULES_VERSION, THIRD_PARTIES, brand_
                                      domain_reason, extract_cnpjs, tenant_brand_match, url_reason)
 from app.services.site_rules import content_directory_reason
 
-USER_AGENT = "DazumCNPJ-POC/0.1"
+# Identificação pública e estável do robô. O token "DazumCNPJ" é o que os sites
+# usam no robots.txt para regras específicas; a página explica uso e bloqueio.
+ROBOT_TOKEN = "DazumCNPJ"
+ROBOT_INFO_URL = "https://busca-cnpjs.vercel.app/robo"
+USER_AGENT = f"{ROBOT_TOKEN}/1.0 (+{ROBOT_INFO_URL})"
 
 
 def third_party(host):
@@ -111,10 +115,13 @@ def same_site(left, right):
 
 
 class SafeFetcher:
-    def __init__(self, quota, settings):
+    def __init__(self, quota, settings, *, truncate=False, any_text=False):
         self.quota, self.settings = quota, settings
         self.robots = {}
         self.locks = {}
+        # robots.txt (RFC 9309): lê só o início de arquivos grandes e aceita
+        # qualquer tipo de conteúdo. Páginas continuam com o limite estrito.
+        self.truncate, self.any_text = truncate, any_text
 
     def _one(self, url):
         clean, host, port = safe_url(url)
@@ -133,7 +140,7 @@ class SafeFetcher:
             if headers.get("content-encoding", "identity").lower() not in {"", "identity"}:
                 raise ProviderError("CONTEUDO_NAO_SUPORTADO")
             content_type = headers.get("content-type", "").lower()
-            if not any(t in content_type for t in ("text/html", "application/xhtml+xml", "text/plain")):
+            if not self.any_text and not any(t in content_type for t in ("text/html", "application/xhtml+xml", "text/plain")):
                 raise ProviderError("CONTEUDO_NAO_SUPORTADO")
             body = bytearray()
             while True:
@@ -147,6 +154,9 @@ class SafeFetcher:
                     break
                 body.extend(block)
                 if len(body) > self.settings.max_bytes:
+                    if self.truncate:
+                        del body[self.settings.max_bytes:]
+                        break
                     raise ProviderError("CONTEUDO_MUITO_GRANDE")
             charset = re.search(r"charset=[\"']?([a-zA-Z0-9_-]+)", content_type)
             try:

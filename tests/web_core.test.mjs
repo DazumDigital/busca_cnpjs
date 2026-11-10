@@ -1,6 +1,18 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validCnpj, mask, safeLink, groups, failureMessage, needsProcessing, nextBatchItem} from '../app/web/static/core.mjs';
+import {validCnpj, mask, safeLink, groups, failureMessage, needsProcessing, nextBatchItem, waitMessage} from '../app/web/static/core.mjs';
+
+test('esperas longas indicam limite do período; curtas, intervalo entre acessos',()=>{
+  assert.match(waitMessage(12),/intervalo seguro entre acessos: próxima verificação em 12s/);
+  assert.match(waitMessage(3600),/Limite de pesquisas do período atingido.*cerca de 60 min/);
+  assert.match(waitMessage(undefined),/1s/);
+});
+test('conta não liberada, suspensão, configuração e limite por minuto têm mensagens próprias',()=>{
+  const codes=['PESQUISA_NAO_LIBERADA','PESQUISA_SUSPENSA','INTEGRACAO_NAO_VERIFICADA','LIMITE_CONSULTAS','COTA_EXTERNA_ESGOTADA'];
+  assert.equal(new Set(codes.map(failureMessage)).size,codes.length);
+  assert.match(failureMessage('PESQUISA_NAO_LIBERADA'),/não está liberada/);
+  assert.match(failureMessage('LIMITE_CONSULTAS'),/por minuto/);
+});
 
 test('consulta concluída só volta a processar com revalidação pendente e pesquisa liberada',()=>{
   assert.equal(needsProcessing({status:'NA_FILA'},false),true);

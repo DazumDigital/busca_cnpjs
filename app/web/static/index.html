@@ -18,13 +18,13 @@
     <div class="shell nav">
       <a class="brand" href="#consulta" aria-label="DazumDigital, início"><picture><source media="(max-width: 540px)" srcset="/assets/logos/dazum-square-orange.svg"><img src="/assets/logos/dazum-wordmark-orange.svg" width="184" height="36" alt="DazumDigital"></picture><span class="brand-caption">CONSULTA<br>DE CNPJ</span></a>
       <nav aria-label="Navegação principal"><a class="nav-link active" href="#consulta">Consulta de CNPJ</a><a class="nav-link" href="#historico">Histórico</a></nav>
-      <div class="account"><span class="internal"><i></i> Acesso interno</span><button class="quiet" id="logout" hidden>Sair <span aria-hidden="true">↗</span></button></div>
+      <div class="account"><span class="internal"><i></i> Acesso interno</span><span class="user-label" id="current-user" hidden></span><button class="quiet" id="logout" hidden>Sair <span aria-hidden="true">↗</span></button></div>
     </div>
   </header>
   <main class="shell" id="main">
     <section class="hero enter" id="consulta" aria-labelledby="main-title">
       <div class="hero-copy"><p class="eyebrow"><span class="line"></span> CONEXÕES QUE FAZEM SENTIDO</p><h1 id="main-title">Consulte empresas<br>pelo <span>CNPJ.</span></h1><p class="lead">Encontre sites oficiais, presença digital e fontes relacionadas a empresas em uma única consulta.</p><div class="hero-caption"><span class="tiny-check" aria-hidden="true">✓</span> Evidências claras. Decisões mais seguras.</div></div>
-      <aside class="wallet" aria-label="Saldo da organização"><div class="wallet-top"><span class="eyebrow">SEU ESPAÇO DE PESQUISA</span><span class="wallet-icon" aria-hidden="true">◈</span></div><p>Tokens disponíveis</p><div class="token-line"><strong id="balance" aria-live="polite">—</strong><span class="token-unit">tokens</span></div><div class="wallet-bottom"><span><b id="consumed">—</b> utilizados</span><span>Saldo compartilhado</span></div><p class="wallet-note">1 consulta concluída = 1 token</p></aside>
+      <aside class="wallet" aria-label="Saldo da organização"><div class="wallet-top"><span class="eyebrow">SEU ESPAÇO DE PESQUISA</span><span class="wallet-icon" aria-hidden="true">◈</span></div><p>Tokens disponíveis</p><div class="token-line"><strong id="balance" aria-live="polite">—</strong><span class="token-unit">tokens</span></div><div class="wallet-bottom"><span><b id="consumed">—</b> utilizados</span><span>Saldo compartilhado</span></div><p class="wallet-note">1 consulta com resultado = 1 token</p></aside>
     </section>
     <section class="login-panel enter" id="login-panel" aria-labelledby="login-title">
       <div><span class="eyebrow">ACESSO DA EQUIPE</span><h2 id="login-title">Seu próximo contato começa aqui.</h2><p>Entre com sua conta DazumDigital para consultar empresas e acessar o saldo da organização.</p></div>
@@ -34,7 +34,7 @@
       <div class="search-heading"><div><span class="step">01 / PESQUISAR</span><h2 id="search-title">Qual empresa você procura?</h2></div><span class="private-label"><span aria-hidden="true">◇</span> Ambiente da sua equipe</span></div>
       <form id="search-form" method="post" action="/api/consultas" novalidate><div class="field"><label for="cnpj">CNPJ da empresa</label><div class="input-wrap"><span aria-hidden="true" class="search-icon">⌕</span><input id="cnpj" name="cnpj" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="00.000.000/0000-00" aria-describedby="search-help search-error" required><span class="input-check" id="input-check" aria-hidden="true"></span></div></div><button type="submit" class="primary search-button" id="search-button" disabled><span class="spinner" aria-hidden="true" hidden></span><span id="search-button-label">Consultar CNPJ</span><span class="arrow" aria-hidden="true">↗</span></button></form>
       <div class="search-bottom"><p id="search-help">Digite os 14 números. Você também pode colar o CNPJ formatado.</p><span id="reservation" hidden>Há tokens reservados para pesquisas em andamento.</span></div><p id="search-error" class="error" role="alert"></p>
-      <div class="external-option" id="external-option" hidden><p>Este CNPJ ainda não possui uma pesquisa registrada. Uma nova pesquisa usa 1 token quando concluída.</p><button class="outline" id="external-button">Autorizar nova pesquisa</button></div>
+      <div class="external-option" id="external-option" hidden><p>Este CNPJ ainda não possui uma pesquisa registrada. Uma nova pesquisa usa 1 token apenas se trouxer resultado utilizável.</p><button class="outline" id="external-button">Autorizar nova pesquisa</button></div>
       <div class="batch-entry">
         <div class="search-heading"><div><span class="step">PESQUISA EM LOTE</span><h2>Até 15 empresas de uma vez</h2></div></div>
         <p class="data-note" id="batch-mode">Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas neste lote. CNPJs sem registro serão identificados sem cobrança.</p>

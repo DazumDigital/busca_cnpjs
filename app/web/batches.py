@@ -8,7 +8,7 @@ import time
 import uuid
 from sqlalchemy import select, insert, update
 from app.web.batch_input import validated_input
-from app.web.store import batches, batch_items, consultations, companies, organizations, WebError, digest
+from app.web.store import batches, batch_items, consultations, companies, organizations, charges, WebError, digest
 
 
 def owned(conn, user, identifier):
@@ -24,7 +24,9 @@ def view(store, conn, user, identifier):
     records = conn.execute(select(consultations, batch_items.c.position, batch_items.c.error_code)
         .join(batch_items, batch_items.c.consultation_id == consultations.c.id)
         .where(batch_items.c.batch_id == identifier).order_by(batch_items.c.position)).mappings().all()
-    items = [dict(id=r['id'], cnpj=r['cnpj'], status=r['status'], erro=r['error_code'],
+    ids = [r['id'] for r in records]
+    charged = set(conn.execute(select(charges.c.consultation_id).where(charges.c.consultation_id.in_(ids))).scalars()) if ids else set()
+    items = [dict(id=r['id'], cnpj=r['cnpj'], status=r['status'], erro=r['error_code'], token_consumido=r['id'] in charged,
                   criado_em=r['created_at'], resultado=json.loads(r['result']) if r['result'] else None) for r in records]
     done = sum(i['status'] == 'CONCLUIDA' for i in items)
     errors = sum(i['status'] == 'FALHOU' for i in items)
@@ -33,7 +35,7 @@ def view(store, conn, user, identifier):
     status = ('CONCLUIDO_COM_ERROS' if errors else 'CONCLUIDO') if not pending and not running else ('EM_ANDAMENTO' if done or errors or running else 'PENDENTE')
     return dict(id=identifier, status=status, criado_em=row['created_at'], entrada=json.loads(row['input_json']),
         progresso=dict(total=len(items), concluidos=done, em_andamento=running, pendentes=pending,
-                       erros=errors, tokens_consumidos=done), itens=items, saldo=store.balance(user['organization_id'], conn),
+                       erros=errors, tokens_consumidos=len(charged)), itens=items, saldo=store.balance(user['organization_id'], conn),
         modo='DADOS_ARMAZENADOS', pesquisa_externa=False)
 
 

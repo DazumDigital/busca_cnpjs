@@ -15,7 +15,7 @@ from app.services.importer import normalize_cnpj
 from app.services.search_queries import queries_for
 from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match, tenant_brand_match
 from app.services.site_outcome import public_validation, result_status
-from app.services.validator import SafeFetcher, classify, same_site, safe_url, VisibleText, tenant_identity_evidence, USER_AGENT
+from app.services.validator import SafeFetcher, classify, same_site, safe_url, VisibleText, tenant_identity_evidence, USER_AGENT, ROBOT_TOKEN
 from app.services.references import useful_references
 from app.web.results import public_result, link
 from app.providers.base import retry_after
@@ -76,12 +76,45 @@ class SingleReservation:
     def cooldown(self,*args):pass
 
 
-async def fetch_one(url):
-    # 1 MB, como na POC: portais corporativos costumam passar de 300 KB.
-    settings=Settings(timeout=8,retries=0,max_bytes=1_000_000,website_delay=10)
+ROBOTS_MAX_BYTES = 500 * 1024  # RFC 9309 §2.5: analisar ao menos 500 KiB
+ROBOTS_LINE = re.compile(r'^\s*(user-agent|allow|disallow|crawl-delay)\s*:\s*([^#]*?)\s*(?:#.*)?$', re.I)
+
+
+async def fetch_one(url, robots=False):
+    # Páginas: até 1 MB, como na POC. robots.txt: só os primeiros 500 KiB, de
+    # qualquer tipo de conteúdo, sem falhar por tamanho (RFC 9309).
+    settings=Settings(timeout=8,retries=0,max_bytes=ROBOTS_MAX_BYTES if robots else 1_000_000,website_delay=10)
     # one() fixa o IP público, verifica TLS/Host e não segue redirects. Robots e
     # redirects são etapas persistidas separadamente, sob o controle global.
-    return await SafeFetcher(SingleReservation(),settings).one(url)
+    return await SafeFetcher(SingleReservation(),settings,truncate=robots,any_text=robots).one(url)
+
+
+def robots_rules(text):
+    """Grupos do robots.txt que se aplicam ao robô ('*' ou o token DazumCNPJ).
+    Linhas inválidas, longas demais ou HTML são ignoradas, como prevê a RFC 9309;
+    só as regras aplicáveis ficam no estado persistido."""
+    token=ROBOT_TOKEN.lower()
+    def applies(agent):
+        agent=agent.split('/')[0].strip().lower()
+        return agent=='*' or (bool(agent) and agent in token)
+    kept,agents,relevant,in_agents=[],[],False,False
+    for raw in text.splitlines():
+        match=ROBOTS_LINE.match(raw) if len(raw)<=2048 else None
+        if not match:
+            continue
+        field,value=match.group(1).lower(),match.group(2).strip()
+        if field=='user-agent':
+            if not in_agents:
+                agents,relevant,in_agents=[],False,True
+            if applies(value):
+                agents.append(value);relevant=True
+            continue
+        if in_agents:
+            in_agents=False
+            if relevant:kept.extend('User-agent: '+agent for agent in agents)
+        if relevant:
+            kept.append({'allow':'Allow','disallow':'Disallow','crawl-delay':'Crawl-delay'}[field]+': '+value)
+    return kept[:5000]
 
 
 def payload_for(state, partial=False):
@@ -97,6 +130,7 @@ def payload_for(state, partial=False):
         failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],item['url'])),None)
         if failed:item['ressalvas']=['Validação não concluída: '+site_reason(failed['error'],failed.get('http_status'))+'.']
     payload['possiveis_sites'].extend(other_sites(company,state,payload))
+    mark_google_panel(payload,state)
     payload['fontes']=[dict(tipo='CADASTRO',nome='Minha Receita — dados públicos da Receita Federal',
         url='https://minhareceita.org/'+company.cnpj,consultado_em=state['created_at'])]
     if state.get('searched_at'):
@@ -109,12 +143,33 @@ def payload_for(state, partial=False):
     return payload
 
 
-def candidate_sites(company,cnpj,urls,limit=MAX_SITES):
-    """Um endereço por site, priorizando domínios compatíveis com a marca."""
+def candidate_sites(company,cnpj,urls,limit=MAX_SITES,first=None):
+    """Um endereço por site: primeiro o indicado pelo painel do Google, depois
+    domínios compatíveis com a marca. Ordem de validação, não de confiança."""
     sites=[]
-    for url in rank_candidates(company,[u for u in urls if not url_reason(u,cnpj)]):
+    ranked=rank_candidates(company,[u for u in urls if not url_reason(u,cnpj)])
+    if first and first in ranked:
+        ranked=[first]+[u for u in ranked if u!=first]
+    for url in ranked:
         if not any(same_site(url,site) for site in sites):sites.append(url)
     return sites[:limit]
+
+
+def preferred_site(company,url,state):
+    """Candidato que pode aparecer como possível site mesmo sem validação."""
+    panel=state.get('google_panel_site')
+    return brand_site(company,url) or bool(panel and same_site(url,panel))
+
+
+def mark_google_panel(payload,state):
+    panel=state.get('google_panel_site')
+    if not panel:
+        return
+    for item in [payload.get('website_oficial')]+payload['possiveis_sites']+payload['referencias']+payload['redes_sociais']:
+        if item and same_site(item['url'],panel):
+            item['indicado_google']=True
+            if item.get('tipo')=='POSSIVEL_SITE':
+                item['ressalvas']=list(item.get('ressalvas') or [])+['Indicado pelo painel do Google; isso não confirma a titularidade.']
 
 
 def other_sites(company,state,payload):
@@ -123,16 +178,16 @@ def other_sites(company,state,payload):
     rejected=[v.get('website','') for v in state.get('site_results',[]) if v.get('site_type') in {'THIRD_PARTY','CNPJ_DIVERGENTE'}]
     visited={v.get('website',''):v for v in state.get('site_results',[]) if v.get('website')}
     extra=[]
-    for url in candidate_sites(company,company.cnpj,state.get('candidates',[]),limit=4):
+    for url in candidate_sites(company,company.cnpj,state.get('candidates',[]),limit=4,first=state.get('google_panel_site')):
         if any(same_site(url,u) for u in shown+rejected if u):continue
         failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],url)),None)
         seen=next((v for u,v in visited.items() if same_site(u,url)),None)
         # Páginas de terceiros sem a marca (associações, catálogos) não viram
         # "possível site" só por terem falhado ou não terem sido visitadas.
-        if seen and (seen.get('confidence')=='MEDIA' or brand_site(company,url)):
+        if seen and (seen.get('confidence')=='MEDIA' or preferred_site(company,url,state)):
             item=link(seen['website'],'POSSIVEL_SITE',seen.get('confidence') if seen.get('confidence')=='MEDIA' else 'BAIXA',
                       'Página acessada; as evidências não confirmam a titularidade.')
-        elif not brand_site(company,url):
+        elif not preferred_site(company,url,state):
             continue
         elif failed:
             item=link(url,'POSSIVEL_SITE','PENDENTE','Encontrado na pesquisa; a validação técnica não pôde ser concluída.',
@@ -198,7 +253,14 @@ async def execute_action(cnpj, state, key):
             try:clean,_,_=safe_url(url)
             except (ValueError,TypeError):continue
             if clean not in candidates:candidates.append(clean)
-        sites=candidate_sites(company,cnpj,candidates)
+        # Só a URL do painel do Google é guardada (atribuição), nunca o painel.
+        graph=data.get('knowledgeGraph')
+        panel=None
+        if isinstance(graph,dict) and isinstance(graph.get('website'),str):
+            try:panel=safe_url(graph['website'])[0]
+            except (ValueError,TypeError):panel=None
+        state['google_panel_site']=panel
+        sites=candidate_sites(company,cnpj,candidates,first=panel)
         state.update(candidates=candidates[:10],searched_at=datetime.now(timezone.utc).isoformat(),robots={},
             queue=sites[:1],sites=sites[1:],current_site=sites[0] if sites else None,site_results=[],site_failures=[],
             redirects=[],web_calls=0,validations=[],phase='WEBSITE' if sites else 'DONE')
@@ -266,7 +328,7 @@ def finish_websites(state):
     best=best_site(state)
     failures=state.get('site_failures',[])
     company=Company(**state['company'])
-    branded=[f for f in failures if brand_site(company,f['url'])]
+    branded=[f for f in failures if preferred_site(company,f['url'],state)]
     if best:
         final=best
     elif branded:
@@ -313,7 +375,7 @@ async def website_step(company,cnpj,state):
         robots_url=state.get('robots_url') or origin+'/robots.txt'
         # O acesso conta mesmo se falhar: a reserva técnica já foi gravada.
         state['web_calls']=state.get('web_calls',0)+1
-        page=await fetch_one(robots_url)
+        page=await fetch_one(robots_url,robots=True)
         if page.status in {429,503}:raise ProviderError('LIMITE_TEMPORARIO',details={'retry_after':max(60,retry_after(page.headers.get('retry-after')))})
         if page.status in {301,302,303,307,308}:
             chain=state.get('robots_redirects',[])
@@ -326,9 +388,7 @@ async def website_step(company,cnpj,state):
             raise ProviderError('ROBOTS_INDISPONIVEL',details={'http_status':page.status})
         if page.status!=200:
             state['robots_status']=dict(state.get('robots_status',{}),**{origin:page.status})
-        lines = page.text.splitlines() if page.status == 200 else []
-        if len(lines) > 2000 or any(len(line) > 1000 for line in lines):
-            raise ProviderError('ROBOTS_INDISPONIVEL')
+        lines = robots_rules(page.text) if page.status == 200 else []
         robots[origin]=lines;state.update(robots=robots,robots_url=None,robots_redirects=[])
         parser=RobotFileParser();parser.parse(lines)
         state['crawl_delay']=max(10,int(parser.crawl_delay(USER_AGENT) or parser.crawl_delay('*') or 0))

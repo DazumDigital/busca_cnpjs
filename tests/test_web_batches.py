@@ -44,16 +44,22 @@ def test_batches_process_exactly_once_and_persist(web, n):
     assert batch['saldo']['consumidos'] == 0 and batch['saldo']['reservados'] == n
     assert create(web, '\n'.join(cnps(web,n)), key).json()['id'] == batch['id']
     assert web[0].get('/api/lotes/'+batch['id']).json()['progresso']['pendentes'] == n
+    from app.web.store import usable
+    expected = 0
     for i, item in enumerate(batch['itens'], 1):
         result = step(web,batch,item).json()
+        with web[1].engine.connect() as db:
+            saved = json.loads(db.execute(select(companies.c.payload).where(companies.c.cnpj == item['cnpj'])).scalar_one())
+        expected += usable(saved)  # 1 token só com resultado utilizável
         assert result['progresso']['concluidos'] == i
-        assert result['saldo']['consumidos'] == i
-        assert step(web,batch,item).json()['saldo']['consumidos'] == i
+        assert result['saldo']['consumidos'] == expected == result['progresso']['tokens_consumidos']
+        assert step(web,batch,item).json()['saldo']['consumidos'] == expected
         fresh = Store(web[3].database_url)
         assert service.get_batch(fresh,user(web),batch['id'])['progresso']['concluidos'] == i
     assert result['status'] == 'CONCLUIDO' and result['saldo']['reservados'] == 0
+    assert result['saldo']['disponiveis'] == 2469 - expected
     with web[1].engine.connect() as db:
-        assert db.execute(select(func.count()).select_from(charges)).scalar() == n
+        assert db.execute(select(func.count()).select_from(charges)).scalar() == expected
 
 
 def test_sixteen_rejected_before_reservation(web):
