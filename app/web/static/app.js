@@ -1,12 +1,12 @@
-import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage, needsProcessing, nextBatchItem, waitMessage} from './core.mjs';
+import {digits, mask, validCnpj, safeLink, groups, analyzeBatch, failureMessage, needsProcessing, nextBatchItem, waitMessage, tokenNote} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const number = new Intl.NumberFormat('pt-BR');
-const state = {csrf:'', busy:false, external:false, result:null, filter:'todos', balance:null, poll:null, batch:null, batchRunning:false, batchLoopActive:false};
+const state = {csrf:'', busy:false, external:false, result:null, filter:'todos', balance:null, before:{}, poll:null, batch:null, batchRunning:false, batchLoopActive:false};
 const types = {BUSINESS_DIRECTORY:'Diretório empresarial', INSTITUTIONAL_THIRD_PARTY_DOCUMENT:'Documento institucional de terceiros',
   THIRD_PARTY_REFERENCE:'Página de referência', REFERENCE_PAGE:'Página de referência', SOCIAL_NETWORK:'Rede social',
   CONFIRMADO_AUTOMATICAMENTE:'Titularidade confirmada', VERIFICACAO_MANUAL_INFORMADA:'Verificação manual informada',
-  POSSIVEL_SITE:'Possível site', REDE_SOCIAL:'Perfil social'};
+  POSSIVEL_SITE:'Possível site', REDE_SOCIAL:'Perfil social', SITE_DA_MATRIZ:'Site da matriz'};
 Object.assign(types,{PAGINA_DE_REFERENCIA:'Página de referência',DIRETORIO_EMPRESARIAL:'Diretório empresarial',DOCUMENTO_INSTITUCIONAL_TERCEIRO:'Documento institucional de terceiros'});
 const confidence = {ALTA:'Alta confiança', MEDIA:'Confiança média', BAIXA:'Baixa confiança', PENDENTE:'Pendente', MANUAL:'Informada', NAO_CONFIRMADO:'Não confirmado'};
 const processing = {CONCLUIDA:'Concluída', NA_FILA:'Aguardando pesquisa', EM_PROCESSAMENTO:'Em andamento', FALHOU:'Não concluída'};
@@ -45,6 +45,7 @@ function updateBalance(balance) {
   $('reservation').hidden=balance.reservados===0;
   if(changed) { const wallet=$('balance').closest('.wallet'); wallet.classList.remove('pulse'); requestAnimationFrame(()=>wallet.classList.add('pulse')); }
   $('search-button').disabled=state.busy || state.batchLoopActive || balance.disponiveis<=0;
+  $('search-help').textContent=`Saldo: ${number.format(balance.disponiveis)} tokens. Pesquisa nova concluída usa 1 token; resultado já salvo é reaproveitado sem custo.`;
   updateBatchInput();
   if(balance.disponiveis<=0 && !$('search-error').textContent) $('search-error').textContent='Você não possui tokens suficientes para realizar uma nova consulta.';
 }
@@ -54,7 +55,7 @@ async function authorized() {
   if(!session.autenticado) {signedOut();return;}
   state.csrf=session.csrf; state.external=session.pesquisa_externa_disponivel;
   $('current-user').textContent=session.usuario; $('current-user').title='Conectado como '+session.usuario; $('current-user').hidden=false;
-  $('batch-mode').textContent=state.external?'Resultados existentes são reaproveitados. Empresas novas são pesquisadas progressivamente, respeitando as cotas gratuitas. 1 token por consulta com resultado utilizável; sem resultado, nada é cobrado.':'Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas. CNPJs sem registro não são cobrados.';
+  $('batch-mode').textContent=state.external?'Resultados existentes são reaproveitados. Empresas novas são pesquisadas progressivamente, respeitando os limites aprovados. 1 token por pesquisa nova concluída; resultados já salvos são reaproveitados sem custo.':'Consulte os dados já pesquisados. Novas pesquisas externas estão desativadas. CNPJs sem registro não são cobrados.';
   $('login-panel').hidden=true; $('search-panel').hidden=false; $('logout').hidden=false; $('historico').hidden=false;
   await refreshBalance(); await history(); await batchHistory(); await restoreBatch();
   if(pending && validCnpj(pending.cnpj)) { $('cnpj').value=mask(pending.cnpj); await submit(pending.external); }
@@ -94,11 +95,12 @@ async function submit(external=false) {
   if(state.busy || state.batchLoopActive) return;
   const cnpj=digits($('cnpj').value);
   if(!validCnpj(cnpj)) { $('search-error').textContent='O CNPJ informado é inválido. Confira os números e tente novamente.'; $('cnpj').setAttribute('aria-invalid','true'); $('cnpj').focus(); return; }
-  if(!pending || pending.cnpj!==cnpj) pending={cnpj,key:crypto.randomUUID(),external};
+  if(!pending || pending.cnpj!==cnpj) pending={cnpj,key:crypto.randomUUID(),external,before:state.balance};
   // A retry uses the same operation even if the prior response was lost.
   memorySet('dazum_pending',pending); busy(true); $('search-error').textContent=''; $('external-option').hidden=true; $('results').hidden=true;
   try {
     const data=await api('/api/consultas',{method:'POST',headers:{'Idempotency-Key':pending.key},body:JSON.stringify({cnpj,autorizar_pesquisa_externa:pending.external})});
+    if(typeof pending.before==='number') state.before[data.id]=pending.before;
     memorySet('dazum_last',data.id); pending=null; memorySet('dazum_pending',null);
     await showConsultation(data); await history();
   } catch(error) {
@@ -147,15 +149,15 @@ function render(data) {
   details.append(meta); $('company-card').append(monogram,details,node('span','company-status','Pesquisa registrada'));
   const all=groups(result), total=all.reduce((sum,g)=>sum+g.items.length,0);
   $('result-date').textContent=(result.origem_resultado==='PESQUISA_REAL'?'Pesquisa real registrada · ':'Resultado histórico · ')+new Date(data.criado_em*1000).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
-  $('result-summary').textContent=total?`${total} ${total===1?'link identificado':'links identificados'} · Fontes organizadas por tipo de vínculo.`:'Nenhum resultado encontrado. Não identificamos sites ou referências para este CNPJ.'+(data.token_consumido===false?' Nenhum token foi consumido.':'');
+  $('result-summary').textContent=(total?`${total} ${total===1?'link identificado':'links identificados'} · Fontes organizadas por tipo de vínculo.`:'Nenhum link encontrado. Não identificamos sites ou referências para este CNPJ.')+' '+tokenNote(data,state.before?.[data.id]);
   $('filters').replaceChildren();
-  for(const filter of [{key:'todos',title:'Todos',count:total},...all.filter(g=>g.items.length).map(g=>({key:g.key,title:({oficial:'Oficial',manual:'Manual',possiveis:'Possíveis sites',sociais:'Redes sociais',referencias:'Referências'})[g.key],count:g.items.length}))]) {
+  for(const filter of [{key:'todos',title:'Todos',count:total},...all.filter(g=>g.items.length).map(g=>({key:g.key,title:({oficial:'Oficial',manual:'Manual',matriz:'Site da matriz',possiveis:'Possíveis sites',google:'Painel do Google',sociais:'Redes sociais',referencias:'Referências'})[g.key],count:g.items.length}))]) {
     const button=node('button','filter'+(state.filter===filter.key?' active':''),filter.title); button.type='button'; button.setAttribute('aria-pressed',String(state.filter===filter.key)); button.append(node('small','',filter.count));
     button.addEventListener('click',()=>{state.filter=filter.key; render(data); $('filters').querySelector('[aria-pressed="true"]').focus({preventScroll:true});}); $('filters').append(button);
   }
   $('result-groups').replaceChildren();
   if(!result.website_oficial && state.filter==='todos') {
-    const title=result.verificacao_manual?'Sem confirmação automática de site oficial':result.status==='FALHA_VALIDACAO_SITE_OFICIAL'?'Validação técnica pendente':result.possiveis_sites.length?'Há um candidato para revisão':'Sem site oficial confirmado';
+    const title=result.verificacao_manual?'Sem confirmação automática de site oficial':result.site_matriz?.length?'Site da matriz encontrado · filial não confirmada':result.status==='FALHA_VALIDACAO_SITE_OFICIAL'?'Validação técnica pendente':(result.possiveis_sites.length || result.indicado_google?.length)?'Há um candidato para revisão':'Sem site oficial confirmado';
     const empty=node('div','empty-state'); empty.append(node('h3','',title),node('p','',result.verificacao_manual?'Há uma verificação manual informada, apresentada separadamente abaixo.':'Os links encontrados permanecem classificados conforme as evidências disponíveis.'));
     $('result-groups').append(empty);
   }
@@ -177,7 +179,7 @@ function renderLink(item,key) {
   for(const alert of item.ressalvas || []) card.append(node('p','alert',alert));
   if(item.revisao_necessaria && !(item.ressalvas || []).length) card.append(node('p','data-note','Correspondência parcial. Referência disponível para revisão.'));
   if(item.paginas?.length) { const disclosure=node('details','evidence'); disclosure.append(node('summary','','Ver evidências armazenadas')); for(const page of item.paginas) {disclosure.append(node('p','',page.titulo || page.url)); if(page.trecho) disclosure.append(node('p','',page.trecho));} card.append(disclosure); }
-  const actions=node('div','link-actions'), open=node('a','open-link',key==='oficial' || key==='possiveis'?'Acessar site':key==='sociais'?'Abrir perfil':'Abrir referência'); open.href=url; open.target='_blank'; open.rel='noopener noreferrer'; open.append(node('span','','↗'));
+  const actions=node('div','link-actions'), open=node('a','open-link',['oficial','possiveis','matriz','google'].includes(key)?'Acessar site':key==='sociais'?'Abrir perfil':'Abrir referência'); open.href=url; open.target='_blank'; open.rel='noopener noreferrer'; open.append(node('span','','↗'));
   const copy=node('button','copy','Copiar link'); copy.type='button'; copy.setAttribute('aria-label','Copiar link de '+item.dominio);
   copy.addEventListener('click',async()=>{try { await navigator.clipboard.writeText(url); toast('Link copiado'); }catch { toast('Selecione o link e copie pelo navegador.'); }});
   actions.append(open,copy); card.append(actions); return card;
@@ -228,8 +230,9 @@ function showBatch(data) {
   $('batch-items').replaceChildren();
   for(const item of data.itens) {
     const name=item.resultado?.empresa?.nome_fantasia || item.resultado?.empresa?.razao_social;
-    const site=item.resultado?.website_oficial?'Site oficial confirmado':item.resultado?.possiveis_sites?.length?'Possível site para revisão':'Sem site oficial confirmado';
-    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?(item.token_consumido===false?'Concluída · sem resultado utilizável · nenhum token':'Concluída · 1 token · '+site):({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
+    const found=item.resultado || {};
+    const site=found.website_oficial?'Site oficial confirmado':found.site_matriz?.length?'Site da matriz (filial não confirmada)':(found.possiveis_sites?.length || found.indicado_google?.length)?'Possível site para revisão':'Sem site oficial confirmado';
+    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?(item.token_consumido===false?'Concluída · resultado já salvo, reaproveitado · sem custo':'Concluída · 1 token · '+site):({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
     row.append(info);if(item.resultado){const button=node('button','','Ver resultado ↗');button.type='button';button.addEventListener('click',()=>reopen(item.id));row.append(button);}$('batch-items').append(row);
   }
   exportButtons($('batch-exports'),'/api/lotes/'+encodeURIComponent(data.id)+'/exportar');

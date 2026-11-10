@@ -6,19 +6,20 @@ Situação em **10/11/2026**. Este arquivo resume o que foi feito, o que está p
 
 - A pesquisa real funciona de ponta a ponta (cadastro → busca Serper → validação de sites) e foi comprovada no piloto da WEG.
 - Produção está com a **pesquisa externa desligada**. A equipe ainda **não** foi liberada.
-- Os ajustes aprovados em 09/11 (robots.txt RFC 9309, robô DazumCNPJ, painel do Google, usuário no cabeçalho, mensagens distintas e nova regra de tokens) estão na branch `feat/operacao-equipe`, testados, **aguardando PR, merge e deploy**.
-- Próximo marco: etapa 1a da liberação gradual, com 5 CNPJs inéditos escolhidos pelo proprietário.
+- PR #8 (robots.txt RFC 9309, robô DazumCNPJ, painel do Google, usuário no cabeçalho, mensagens distintas) está em produção (`db54379`).
+- Em 10/11 o proprietário definiu a **regra final de tokens** (pesquisa real concluída = 1 token; resultado já salvo reaproveitado sem custo), pediu as categorias **site da matriz** e **indicado pelo painel do Google**, o saldo antes/depois e **autorizou a etapa 1a** com 5 CNPJs. Essas mudanças estão na branch `feat/finalizacao-operacional`.
+- Próximo marco: integrar essa branch, publicar com a pesquisa desligada e ativar a etapa 1a.
 
 ## 2. GitHub
 
 | Item | Valor |
 |---|---|
 | Repositório | https://github.com/DazumDigital/busca_cnpjs |
-| `main` | `d70b1e4` — PR #7 (inclui PRs #5 e #6) |
-| Branch em andamento | `feat/operacao-equipe` (commit `1acad01` + documentação), já enviada ao GitHub |
-| PR a abrir | https://github.com/DazumDigital/busca_cnpjs/pull/new/feat/operacao-equipe |
+| `main` | `db54379` — PR #8 (inclui PRs #5 a #7) |
+| Branch em andamento | `feat/finalizacao-operacional` (regra final de tokens, site da matriz, grupo do painel do Google, saldo antes/depois) |
+| PR a abrir | https://github.com/DazumDigital/busca_cnpjs/pull/new/feat/finalizacao-operacional |
 
-Histórico desta fase: `34ba433` (#5, validação de sites resiliente e comandos administrativos), `8e9955e` (#6, RFC 9309 e achados do piloto), `1a73e37` (#7, revalidação sem novo token, crawl-delay por site e lotes em rodízio), `1acad01` (operação da equipe, ainda fora da `main`).
+Histórico desta fase: `34ba433` (#5, validação de sites resiliente e comandos administrativos), `8e9955e` (#6, RFC 9309 e achados do piloto), `1a73e37` (#7, revalidação sem novo token, crawl-delay por site e lotes em rodízio), `1acad01`/`4961f9a` (#8, operação da equipe e documentação).
 
 O push só funciona no **terminal interativo do proprietário** (Git Credential Manager). O `gh` não está instalado; PRs são abertos e integrados pela interface do GitHub.
 
@@ -27,7 +28,7 @@ O push só funciona no **terminal interativo do proprietário** (Git Credential 
 | Item | Valor |
 |---|---|
 | Projeto | `dazum-digital/busca-cnpjs` (Team ID `team_BzXgymmWBHc9JV86DWRhQJAk`, Project ID `prj_AaNc6gH2J5nhtFo5bbMMp5giYf7F`) |
-| Produção | `dpl_6iZ39ReqYCNFpzfPnejnp3xKFpN1`, código `d70b1e4`, publicado em 09/11 15:47 BRT |
+| Produção | `dpl_31DXTPCgb9NYyhKRHTaQKCEqWpPF`, código `db54379`, publicado em 10/11 09:48 BRT |
 | `WEB_ENABLE_EXTERNAL` | `false` em Production (entrada própria, tipo Config); `false` em Preview (entrada separada) |
 | `SERPER_API_KEY` | Secret **só em Production** |
 | Deploy automático por push | Desligado (`vercel.json`: `git.deploymentEnabled=false`) |
@@ -63,7 +64,9 @@ Deploys são feitos pelo CLI a partir da `main` limpa (comando na seção 9). De
 3. **Sem evasão**: User-Agent `DazumCNPJ/1.0 (+https://busca-cnpjs.vercel.app/robo)`, página pública `/robo`; 403/429/503 encerram o site.
 4. **Crawl-delay por site** (mínimo 10 s) e lotes em **rodízio**: um item em espera não trava os demais.
 5. **Painel do Google**: o site indicado é validado primeiro e marcado "Indicado pelo painel do Google", nunca oficial; só a URL é guardada.
-6. **Tokens** (aprovado em 09/11): 1 token só com resultado utilizável (oficial, possível site, referência ou rede social); nada sem resultado, inclusive no histórico; o livro de tokens por consulta impede débito duplicado; revalidação não cobra.
+6. **Tokens** (regra final de 10/11, substitui a de 09/11): 1 token por pesquisa real concluída, com ou sem links; resultado já salvo reaproveitado sem custo e com aviso; falhas, bloqueios, reabertura e revalidação não cobram; o livro de tokens por consulta impede débito duplicado.
+11. **Site da matriz** para filiais e **grupo do painel do Google**, ambos sem confirmação automática; colunas novas no fim das exportações.
+12. **Lotes** dependem da página aberta (fila persistente no Neon, retomada sem perdas); processamento em segundo plano avaliado e pendente de decisão (ver guia de ativação).
 7. **Mensagens distintas**: `PESQUISA_NAO_LIBERADA` (403), `PESQUISA_SUSPENSA`, `INTEGRACAO_NAO_VERIFICADA`, `LIMITE_CONSULTAS` (429), `COTA_EXTERNA_ESGOTADA`; esperas longas mostram "limite do período".
 8. **Revalidação no lugar** (`revalidate-sites`): refaz só os sites com os links já obtidos e atualiza a mesma consulta.
 9. **Limite temporário 429** do cadastro/busca pausa a etapa (máx. 3 vezes) em vez de falhar.
@@ -71,9 +74,9 @@ Deploys são feitos pelo CLI a partir da `main` limpa (comando na seção 9). De
 
 ## 8. Pendências e próximos passos
 
-1. **Integrar `feat/operacao-equipe`**: abrir o PR, integrar na `main`, publicar com a pesquisa desligada e verificar o domínio.
-2. **Etapa 1a — validação com 5 CNPJs**:
-   - o proprietário escolhe 5 CNPJs inéditos e confere o Billing da Serper;
+1. **Integrar `feat/finalizacao-operacional`**: abrir o PR, integrar na `main`, publicar com a pesquisa desligada e verificar o domínio.
+2. **Etapa 1a — validação com 5 CNPJs** (autorizada em 10/11: 00.623.904/0001-73, 83.646.984/0001-00, 83.648.477/0016-91 [filial], 04.743.028/0001-70, 66.136.840/0001-94; até 5 Serper, 5 cadastros, 40 acessos a sites e 5 tokens; Serper confirmada em 10/11 com 2.467 créditos, sem cartão, sem pagamentos e sem recarga; validade de 7 dias):
+   - rascunho do manifesto em `%USERPROFILE%\.dazum-secrets\etapa1a-manifest.RASCUNHO.json`;
    - aplicar o manifesto da etapa 1 com `allowed_organizations: ["dazumdigital"]` e `allowed_cnpjs` com os 5 CNPJs;
    - ligar a flag só em Production e publicar;
    - o proprietário pesquisa pela interface com a conta `cristiano`;

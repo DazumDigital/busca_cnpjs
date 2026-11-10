@@ -85,14 +85,9 @@ def digest(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-NO_USABLE_RESULT = 'Sem resultado utilizável: nenhum site, referência ou rede social foi encontrado. Nenhum token foi consumido.'
-
-
-def usable(payload):
-    """Há algo útil além do cadastro: site oficial, verificação manual, possível
-    site, referência de terceiro ou perfil social."""
-    return bool(payload.get('website_oficial') or payload.get('verificacao_manual') or payload.get('possiveis_sites')
-                or payload.get('referencias') or payload.get('redes_sociais'))
+# Regra de tokens aprovada em 10/11/2026: cada pesquisa real concluída custa
+# exatamente 1 token; reaproveitar um resultado já salvo não custa nada.
+REUSED_RESULT = 'Resultado já salvo de uma pesquisa anterior, reaproveitado sem nova busca. Nenhum token foi consumido.'
 
 
 class Store:
@@ -204,15 +199,16 @@ class Store:
                 raise WebError('NAO_ENCONTRADO', 404)
             return self.view(row, conn)
 
-    def complete(self, conn, row, payload, reserved=False):
-        """Conclui a consulta. Cobra 1 token só com resultado utilizável; o
-        ledger tem a consulta como chave primária e impede débito duplicado."""
-        if usable(payload):
+    def complete(self, conn, row, payload, reserved=False, charge=True):
+        """Conclui a consulta na mesma transação do desconto. Pesquisa real
+        concluída: 1 token (charge=True). Reaproveitamento: nenhum. O ledger tem
+        a consulta como chave primária e impede débito duplicado."""
+        if charge:
             conn.execute(insert(charges).values(consultation_id=row['id'], organization_id=row['organization_id'], amount=1, created_at=time.time()))
             conn.execute(update(organizations).where(organizations.c.id == row['organization_id']).values(
                 consumed=organizations.c.consumed+1, reserved=organizations.c.reserved-(1 if reserved else 0)))
         else:
-            payload = dict(payload, ressalvas=list(payload.get('ressalvas', [])) + [NO_USABLE_RESULT])
+            payload = dict(payload, ressalvas=list(payload.get('ressalvas', [])) + [REUSED_RESULT])
             if reserved:
                 conn.execute(update(organizations).where(organizations.c.id == row['organization_id']).values(
                     reserved=organizations.c.reserved-1))
@@ -229,9 +225,10 @@ class Store:
                 if old['cnpj'] != cnpj or old['user_id'] != user['id']:
                     raise WebError('CHAVE_REUTILIZADA', 409)
                 return self.view(old, conn)
-            if org['initial_tokens'] - org['consumed'] - org['reserved'] <= 0:
-                raise WebError('SALDO_INSUFICIENTE', 402)
             saved = self.saved_payload(conn, org['id'], cnpj)
+            # Reaproveitar não custa token; só a pesquisa nova exige saldo.
+            if not saved and org['initial_tokens'] - org['consumed'] - org['reserved'] <= 0:
+                raise WebError('SALDO_INSUFICIENTE', 402)
             if not saved and not (allow_external and external_authorized):
                 raise WebError('EMPRESA_NAO_PESQUISADA', 404)
             row = dict(id=str(uuid.uuid4()), organization_id=org['id'], user_id=user['id'], idempotency_key=key,
@@ -240,7 +237,7 @@ class Store:
             if saved:
                 payload = json.loads(saved)
                 payload['origem_resultado'] = 'HISTORICO'
-                row.update(status='CONCLUIDA', result=self.complete(conn, row, payload))
+                row.update(status='CONCLUIDA', result=self.complete(conn, row, payload, charge=False))
             else:
                 conn.execute(update(organizations).where(organizations.c.id == org['id']).values(reserved=organizations.c.reserved+1))
             return self.view(row, conn)

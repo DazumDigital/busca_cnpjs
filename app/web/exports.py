@@ -8,7 +8,8 @@ from openpyxl import Workbook
 COLUMNS = ['CNPJ', 'Razão social', 'Nome fantasia', 'Município', 'UF', 'Situação cadastral',
     'Website oficial confirmado', 'Verificação manual informada', 'Websites candidatos',
     'Redes sociais', 'Links de referência', 'Fontes, confiança e evidências',
-    'Status da validação', 'Status do processamento', 'Erro', 'Data da consulta', 'Data da pesquisa de origem']
+    'Status da validação', 'Status do processamento', 'Erro', 'Data da consulta', 'Data da pesquisa de origem',
+    'Site da matriz (filial)', 'Indicado pelo painel do Google']
 
 
 def text(value):
@@ -23,11 +24,14 @@ def rows(items):
         official = result.get('website_oficial') or {}
         manual = result.get('verificacao_manual') or {}
         candidates = result.get('possiveis_sites') or []
+        matriz = result.get('site_matriz') or []
+        panel = result.get('indicado_google') or []
         socials = result.get('redes_sociais') or []
         refs = result.get('referencias') or []
         evidence = []
-        for category, values in [('OFICIAL', [official]), ('MANUAL', [manual]),
-                                 ('CANDIDATO', candidates), ('REDE_SOCIAL', socials), ('REFERENCIA', refs)]:
+        for category, values in [('OFICIAL', [official]), ('MANUAL', [manual]), ('SITE_DA_MATRIZ', matriz),
+                                 ('CANDIDATO', candidates), ('PAINEL_GOOGLE', panel),
+                                 ('REDE_SOCIAL', socials), ('REFERENCIA', refs)]:
             for link in values:
                 if not link or not link.get('url'):
                     continue
@@ -43,7 +47,9 @@ def rows(items):
             text(official.get('url')), text(manual.get('url')), '\n'.join(x['url'] for x in candidates),
             '\n'.join(x['url'] for x in socials), '\n'.join(x['url'] for x in refs),
             json.dumps(evidence, ensure_ascii=False), text(result.get('status')), item['status'],
-            text(item.get('erro')), iso(item.get('criado_em')), iso(company.get('pesquisado_em'))])
+            text(item.get('erro')), iso(item.get('criado_em')), iso(company.get('pesquisado_em')),
+            # Colunas novas no fim, para não deslocar planilhas já montadas.
+            '\n'.join(x['url'] for x in matriz), '\n'.join(x['url'] for x in panel)])
     return output, links
 
 

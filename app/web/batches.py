@@ -102,7 +102,8 @@ def step_batch(store, user, identifier, item_id, external=False, key=''):
             except (ValueError, TypeError, AttributeError):
                 fail_item(conn, row, 'DADOS_ARMAZENADOS_INVALIDOS')
             else:
-                store.complete(conn, row, payload, reserved=True)
+                # Resultado já salvo: reaproveitado sem custo; a reserva volta.
+                store.complete(conn, row, payload, reserved=True, charge=False)
         if saved or not external:
             return view(store, conn, user, identifier)
     from app.web.live import process_consultation

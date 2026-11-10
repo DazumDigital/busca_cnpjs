@@ -1,6 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validCnpj, mask, safeLink, groups, failureMessage, needsProcessing, nextBatchItem, waitMessage} from '../app/web/static/core.mjs';
+import {validCnpj, mask, safeLink, groups, failureMessage, needsProcessing, nextBatchItem, waitMessage, tokenNote} from '../app/web/static/core.mjs';
+
+test('saldo antes e depois: pesquisa nova custa 1 token; reaproveitar não custa',()=>{
+  const done={status:'CONCLUIDA',token_consumido:true,saldo:{disponiveis:2468}};
+  assert.equal(tokenNote(done,2469),'1 token consumido nesta pesquisa · saldo 2.469 → 2.468.');
+  assert.equal(tokenNote(done,undefined),'1 token consumido nesta pesquisa.');
+  assert.match(tokenNote({status:'CONCLUIDA',token_consumido:false,saldo:{disponiveis:2469}},2469),/reaproveitado: nenhum token consumido · saldo 2\.469/);
+  assert.equal(tokenNote({status:'NA_FILA',saldo:{disponiveis:2469}},2469),'');
+});
 
 test('esperas longas indicam limite do período; curtas, intervalo entre acessos',()=>{
   assert.match(waitMessage(12),/intervalo seguro entre acessos: próxima verificação em 12s/);
@@ -55,6 +63,9 @@ test('links ativos permitem apenas HTTP/HTTPS',()=>{
   assert.equal(safeLink('https://thpbrasil.com.br/'),'https://thpbrasil.com.br/');
 });
 test('manual, candidato e diretórios nunca entram no grupo oficial',()=>{
-  const result=groups({website_oficial:null,verificacao_manual:{url:'https://thpbrasil.com.br/'},possiveis_sites:[{url:'https://softdata.com.br/'}],referencias:[{url:'https://app.farmby.com.br/'}]});
-  assert.equal(result[0].items.length,0);assert.equal(result[1].items.length,1);assert.equal(result[2].items.length,1);assert.equal(result[4].items.length,1);
+  const result=groups({website_oficial:null,verificacao_manual:{url:'https://thpbrasil.com.br/'},possiveis_sites:[{url:'https://softdata.com.br/'}],referencias:[{url:'https://app.farmby.com.br/'}],
+    site_matriz:[{url:'https://matriz.com.br/'}],indicado_google:[{url:'https://painel.com.br/'}]});
+  const by=Object.fromEntries(result.map(g=>[g.key,g.items.length]));
+  assert.deepEqual(by,{oficial:0,manual:1,matriz:1,possiveis:1,google:1,sociais:0,referencias:1});
+  assert.deepEqual(result.map(g=>g.key),['oficial','manual','matriz','possiveis','google','sociais','referencias']);
 });

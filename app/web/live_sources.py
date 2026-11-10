@@ -13,7 +13,7 @@ from app.models import Company, Validation, ProviderError
 from app.security import tls_context
 from app.services.importer import normalize_cnpj
 from app.services.search_queries import queries_for
-from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match, tenant_brand_match
+from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match, tenant_brand_match, extract_cnpjs
 from app.services.site_outcome import public_validation, result_status
 from app.services.validator import SafeFetcher, classify, same_site, safe_url, VisibleText, tenant_identity_evidence, USER_AGENT, ROBOT_TOKEN
 from app.services.references import useful_references
@@ -119,18 +119,34 @@ def robots_rules(text):
 
 def payload_for(state, partial=False):
     company=Company(**state['company'])
-    result=public_validation(Validation(**state.get('validation',{})))
+    final=Validation(**state.get('validation',{}))
+    matriz=final if final.site_type=='MATRIZ_SITE' else None
+    if matriz:
+        # O site da matriz tem categoria própria e nunca vira site oficial da filial.
+        final=Validation(rules_version=RULES_VERSION,evidence=['SITE_DA_MATRIZ'])
+    result=public_validation(final)
     urls=state.get('candidates',[])
     refs=useful_references(company,urls,result.page_evidence,result.website)
     record=dict(automatic_status=result_status(result),source_updated_at=state['created_at'],
                 social_candidates=candidate_groups(urls)['social_networks'])
     payload=public_result(record,company.__dict__,result.to_dict(),refs)
     payload['origem_resultado']='PESQUISA_REAL'
+    payload['site_matriz']=[]
+    if matriz:
+        head=matriz.signals.get('matriz_cnpj','')
+        item=link(matriz.website,'SITE_DA_MATRIZ','MEDIA',
+            f'O site mostra o CNPJ da matriz ({head[:2]}.{head[2:5]}.{head[5:8]}/{head[8:12]}-{head[12:]}); '
+            'a filial consultada não aparece nas páginas verificadas.')
+        if item:
+            payload['site_matriz']=[item];payload['status']='SITE_DA_MATRIZ'
     for item in payload['possiveis_sites']:
         failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],item['url'])),None)
         if failed:item['ressalvas']=['Validação não concluída: '+site_reason(failed['error'],failed.get('http_status'))+'.']
     payload['possiveis_sites'].extend(other_sites(company,state,payload))
     mark_google_panel(payload,state)
+    # Grupo próprio para o site indicado pelo painel do Google (nunca oficial por isso).
+    payload['indicado_google']=[i for i in payload['possiveis_sites'] if i.get('indicado_google')]
+    payload['possiveis_sites']=[i for i in payload['possiveis_sites'] if not i.get('indicado_google')]
     payload['fontes']=[dict(tipo='CADASTRO',nome='Minha Receita — dados públicos da Receita Federal',
         url='https://minhareceita.org/'+company.cnpj,consultado_em=state['created_at'])]
     if state.get('searched_at'):
@@ -155,6 +171,20 @@ def candidate_sites(company,cnpj,urls,limit=MAX_SITES,first=None):
     return sites[:limit]
 
 
+def matriz_cnpj(company,page):
+    """Para uma filial: CNPJ da matriz se a página, no domínio ou subdomínio da
+    marca, só mostra inscrições da mesma raiz e entre elas a da matriz (0001).
+    Indica o site do grupo; não confirma a filial."""
+    if company.cnpj[8:12]=='0001' or not brand_site(company,page.url):
+        return None
+    visible=VisibleText();visible.feed(page.text)
+    numbers=extract_cnpjs(' '.join(visible.parts))
+    root=company.cnpj[:8]
+    if not numbers or any(number[:8]!=root for number in numbers):
+        return None
+    return next((number for number in sorted(numbers) if number[8:12]=='0001'),None)
+
+
 def preferred_site(company,url,state):
     """Candidato que pode aparecer como possível site mesmo sem validação."""
     panel=state.get('google_panel_site')
@@ -165,7 +195,7 @@ def mark_google_panel(payload,state):
     panel=state.get('google_panel_site')
     if not panel:
         return
-    for item in [payload.get('website_oficial')]+payload['possiveis_sites']+payload['referencias']+payload['redes_sociais']:
+    for item in [payload.get('website_oficial')]+payload.get('site_matriz',[])+payload['possiveis_sites']+payload['referencias']+payload['redes_sociais']:
         if item and same_site(item['url'],panel):
             item['indicado_google']=True
             if item.get('tipo')=='POSSIVEL_SITE':
@@ -174,7 +204,7 @@ def mark_google_panel(payload,state):
 
 def other_sites(company,state,payload):
     """Demais candidatos plausíveis, sempre como possíveis sites e nunca como oficiais."""
-    shown=[i['url'] for i in payload['possiveis_sites']]+([payload['website_oficial']['url']] if payload['website_oficial'] else [])
+    shown=[i['url'] for i in payload['possiveis_sites']+payload.get('site_matriz',[])]+([payload['website_oficial']['url']] if payload['website_oficial'] else [])
     rejected=[v.get('website','') for v in state.get('site_results',[]) if v.get('site_type') in {'THIRD_PARTY','CNPJ_DIVERGENTE'}]
     visited={v.get('website',''):v for v in state.get('site_results',[]) if v.get('website')}
     extra=[]
@@ -410,6 +440,14 @@ async def website_step(company,cnpj,state):
     if page.status!=200:raise ProviderError('SITE_INACESSIVEL',details={'http_status':page.status})
     page.redirect_chain=state.get('redirects',[])
     result,validations=merged_validation(company,state,classify(company,page))
+    if result.site_type=='CNPJ_DIVERGENTE':
+        head=matriz_cnpj(company,page)
+        if head:
+            # Aponta para a página inicial do site, mesmo que o CNPJ esteja numa página interna.
+            site=next((v['website'] for v in validations if v.get('website')),'') or safe_url(page.url)[0]
+            result=Validation(website=site,domain=(urlsplit(site).hostname or '').removeprefix('www.'),
+                confidence='MEDIA',score=50,accessible=True,rules_version=RULES_VERSION,site_type='MATRIZ_SITE',
+                evidence=['CNPJ da matriz na página; a filial consultada não aparece'],signals={'matriz_cnpj':head})
     queue=state['queue'][1:]
     if not state.get('validations') and not result.confirmed and result.site_type=='CORPORATE_CANDIDATE':
         visible=VisibleText();visible.feed(page.text)
@@ -420,6 +458,6 @@ async def website_step(company,cnpj,state):
             if same_site(address,page.url) and address!=page.url and not url_reason(address,cnpj) and re.search(r'termos|privacidade|legal|contato|sobre',urlsplit(address).path,re.I):links.append(address)
         links=list(dict.fromkeys(links));links.sort(key=lambda u:0 if re.search(r'termos|privacidade|legal',u,re.I) else 1)
         queue=links[:2]
-    if result.confirmed or result.site_type in {'THIRD_PARTY','CNPJ_DIVERGENTE'}:queue=[]
+    if result.confirmed or result.site_type in {'THIRD_PARTY','CNPJ_DIVERGENTE','MATRIZ_SITE'}:queue=[]
     state.update(site_validation=result.to_dict(),validations=validations,queue=queue,redirects=[])
     return state if queue else close_site(state)

@@ -358,7 +358,9 @@ def process_consultation(store,user,identifier,key,runner=advance_job):
                 payload=json.loads(saved);payload['origem_resultado']='HISTORICO'
                 if payload.get('empresa',{}).get('cnpj') != current['cnpj']:
                     raise WebError('ERRO_TECNICO',500)
-                store.complete(conn,current,payload,reserved=True)
+                # Já salvo (ex.: pesquisado por outra consulta da organização):
+                # reaproveita sem nova busca e devolve a reserva.
+                store.complete(conn,current,payload,reserved=True,charge=False)
         return store.consultation(user['organization_id'],identifier)
     try:
         outcome=runner(store,row['cnpj'],key,organization=user['organization_id'])
