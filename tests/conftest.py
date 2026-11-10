@@ -26,6 +26,14 @@ def no_network(monkeypatch):
     monkeypatch.setattr(socket, "socketpair", internal_socketpair)
 
 
+@pytest.fixture(autouse=True)
+def no_dns_discovery(monkeypatch):
+    # A descoberta de sites consulta o DNS (raiz do domínio e palpites pelo nome).
+    # Nos testes nenhum domínio "existe", salvo quando o teste simula explicitamente.
+    from app.web import live_sources
+    monkeypatch.setattr(live_sources, "domain_exists", lambda host: False)
+
+
 @pytest.fixture
 def db(tmp_path):
     database = Database(tmp_path / "test.sqlite")

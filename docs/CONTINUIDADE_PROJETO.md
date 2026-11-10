@@ -15,9 +15,9 @@ Situação em **10/11/2026**. Este arquivo resume o que foi feito, o que está p
 | Item | Valor |
 |---|---|
 | Repositório | https://github.com/DazumDigital/busca_cnpjs |
-| `main` | `db54379` — PR #8 (inclui PRs #5 a #7) |
-| Branch em andamento | `feat/finalizacao-operacional` (regra final de tokens, site da matriz, grupo do painel do Google, saldo antes/depois) |
-| PR a abrir | https://github.com/DazumDigital/busca_cnpjs/pull/new/feat/finalizacao-operacional |
+| `main` | `b72a77b` — PR #9 (inclui PRs #5 a #8) |
+| Branch em andamento | `feat/qualidade-sites` (descoberta e classificação de sites após a etapa 1a) |
+| PR a abrir | https://github.com/DazumDigital/busca_cnpjs/pull/new/feat/qualidade-sites |
 
 Histórico desta fase: `34ba433` (#5, validação de sites resiliente e comandos administrativos), `8e9955e` (#6, RFC 9309 e achados do piloto), `1a73e37` (#7, revalidação sem novo token, crawl-delay por site e lotes em rodízio), `1acad01`/`4961f9a` (#8, operação da equipe e documentação).
 
@@ -28,7 +28,7 @@ O push só funciona no **terminal interativo do proprietário** (Git Credential 
 | Item | Valor |
 |---|---|
 | Projeto | `dazum-digital/busca-cnpjs` (Team ID `team_BzXgymmWBHc9JV86DWRhQJAk`, Project ID `prj_AaNc6gH2J5nhtFo5bbMMp5giYf7F`) |
-| Produção | `dpl_31DXTPCgb9NYyhKRHTaQKCEqWpPF`, código `db54379`, publicado em 10/11 09:48 BRT |
+| Produção | `dpl_2nvc7HnnoPePtvcgQpBSbD5CuE51`, código `b72a77b` (PR #9), publicado em 10/11 11:32 BRT com a pesquisa desligada |
 | `WEB_ENABLE_EXTERNAL` | `false` em Production (entrada própria, tipo Config); `false` em Preview (entrada separada) |
 | `SERPER_API_KEY` | Secret **só em Production** |
 | Deploy automático por push | Desligado (`vercel.json`: `git.deploymentEnabled=false`) |
@@ -57,6 +57,12 @@ Deploys são feitos pelo CLI a partir da `main` limpa (comando na seção 9). De
 - Resultado salvo: sem site oficial confirmado; possíveis sites `www.weg.net` (HTTP 403) e `weg.gupy.io`; redes sociais LinkedIn e Instagram.
 - A revalidação de sites usou 5 acessos, sem Serper, sem cadastro e sem novo token.
 
+## 6b. Etapa 1a (10/11/2026) — primeiro teste real da equipe
+
+- 5 CNPJs pesquisados pelo proprietário com a conta `cristiano` (Apple individual; Angeloni, Giassi, FG Prime e Melau Pet em lote): 5 concluídas, **5 tokens** (equipe 2.469 → **2.464**), sem duplicidade; Serper 5, Minha Receita 5, sites 22 (tetos 5/5/40). Logs sem erros. Encerrada com bloqueio no Neon e flag `false` (deploy `dpl_2nvc7HnnoPePtvcgQpBSbD5CuE51`).
+- Nenhum site oficial confirmado. Causas: CNPJ de outro estabelecimento da mesma raiz recusado (Apple); Waze/ABINEE/Pandapé tratados como candidatos; falha de conexão sem diagnóstico e domínio principal fora dos resultados (Angeloni); só diretórios na busca (FG Prime); busca com o artigo "A" e sem "CAETANO" (Melau Pet). Giassi (filial) corretamente como site da matriz.
+- Correções na branch `feat/qualidade-sites` (descoberta e classificação; ver guia de ativação). Validadas com os links reais guardados e fontes simuladas (`tests/test_web_qualidade_sites.py`); falta comprovação real.
+
 ## 7. Decisões técnicas
 
 1. **Falha de site não derruba a consulta**: até 3 sites candidatos e 8 acessos; sem confirmação, o status é `FALHA_VALIDACAO_SITE_OFICIAL` e o motivo aparece no candidato.
@@ -74,7 +80,8 @@ Deploys são feitos pelo CLI a partir da `main` limpa (comando na seção 9). De
 
 ## 8. Pendências e próximos passos
 
-1. **Integrar `feat/finalizacao-operacional`**: abrir o PR, integrar na `main`, publicar com a pesquisa desligada e verificar o domínio.
+0. **Integrar `feat/qualidade-sites`** e publicar com a pesquisa desligada. Comprovar com uma **revalidação dos 5 CNPJs da etapa 1a** (`revalidate-sites`, só acessos a sites: sem Serper, sem cadastro e sem token), mediante autorização.
+1. ~~Integrar `feat/finalizacao-operacional`~~ (PR #9, em produção desde 10/11).
 2. **Etapa 1a — validação com 5 CNPJs** (autorizada em 10/11: 00.623.904/0001-73, 83.646.984/0001-00, 83.648.477/0016-91 [filial], 04.743.028/0001-70, 66.136.840/0001-94; até 5 Serper, 5 cadastros, 40 acessos a sites e 5 tokens; Serper confirmada em 10/11 com 2.467 créditos, sem cartão, sem pagamentos e sem recarga; validade de 7 dias):
    - rascunho do manifesto em `%USERPROFILE%\.dazum-secrets\etapa1a-manifest.RASCUNHO.json`;
    - aplicar o manifesto da etapa 1 com `allowed_organizations: ["dazumdigital"]` e `allowed_cnpjs` com os 5 CNPJs;
