@@ -12,10 +12,10 @@ from app.config import Settings
 from app.models import Company, Validation, ProviderError
 from app.security import tls_context
 from app.services.importer import normalize_cnpj
-from app.services.search_queries import queries_for
-from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match, tenant_brand_match, extract_cnpjs
+from app.services.search_queries import SEARCH_EXCLUSIONS
+from app.services.site_rules import RULES_VERSION, rank_candidates, url_reason, candidate_groups, domain_brand_match, tenant_brand_match, extract_cnpjs, folded
 from app.services.site_outcome import public_validation, result_status
-from app.services.validator import SafeFetcher, classify, same_site, safe_url, VisibleText, tenant_identity_evidence, USER_AGENT, ROBOT_TOKEN
+from app.services.validator import SafeFetcher, classify, same_site, safe_url, VisibleText, tenant_identity_evidence, USER_AGENT, ROBOT_TOKEN, resolve_public
 from app.services.references import useful_references
 from app.web.results import public_result, link
 from app.providers.base import retry_after
@@ -41,9 +41,137 @@ for _code in ('LOOP_REDIRECIONAMENTO', 'LOOP_REDIRECIONAMENTO_ROBOTS', 'REDIRECI
     SITE_REASONS[_code] = 'o site apresenta redirecionamentos inválidos ou em excesso'
 
 
-def site_reason(code, http_status=None):
+CONNECTION_REASONS = {'TEMPO_ESGOTADO': 'tempo esgotado', 'TLS_CERTIFICADO': 'certificado TLS não verificado',
+                      'TLS': 'falha na conexão segura', 'CONEXAO_RECUSADA': 'conexão recusada', 'DNS': 'domínio não encontrado',
+                      'CONEXAO_ENCERRADA': 'conexão encerrada pelo site', 'CONEXAO': 'falha de conexão'}
+
+
+def site_reason(code, http_status=None, connection=None):
     reason = SITE_REASONS.get(code, 'falha técnica na verificação do site')
-    return reason + (f' (HTTP {http_status})' if type(http_status) is int else '')
+    if type(http_status) is int:
+        return reason + f' (HTTP {http_status})'
+    return reason + (f' ({CONNECTION_REASONS[connection]})' if connection in CONNECTION_REASONS else '')
+
+
+def failure_reason(failure):
+    return site_reason(failure['error'], failure.get('http_status'), failure.get('conexao'))
+
+
+# Plataformas e agregadores que nunca são o site da empresa: mapas, vagas,
+# jurídico, catálogos, notícias, associações e portais públicos. Podem virar
+# referência, mas não gastam acessos de validação nem aparecem como possível
+# site. Lista da plataforma web; as regras da POC e os históricos não mudam.
+PLATFORM_DOMAINS = frozenset({
+    'waze.com', 'maps.apple.com', 'maps.google.com', 'maps.app.goo.gl', 'goo.gl', 'g.page', 'bing.com',
+    'tripadvisor.com', 'tripadvisor.com.br', 'yelp.com', 'foursquare.com', 'moovitapp.com', 'ifood.com.br',
+    'pandape.com.br', 'infojobs.com.br', 'gupy.io', 'indeed.com', 'vagas.com.br', 'catho.com.br', 'solides.com.br',
+    'solides.jobs', 'kenoby.com', 'hunterhero.io', '99jobs.com', 'trabalhabrasil.com.br', 'empregos.com.br',
+    'glassdoor.com', 'glassdoor.com.br', 'recrutei.com.br', 'jobs.quickin.io', 'abler.com.br',
+    'jusbrasil.com.br', 'escavador.com', 'leis.org', 'rapidlei.com', 'advdinamico.com.br', 'srwatson.io',
+    'buscasim.com.br', 'atlaspublico.com.br', 'econodata.com.br', 'casadosdados.com.br', 'cnpj.biz', 'cnpj.info',
+    'consultasocio.com', 'empresaqui.com.br', 'guiamais.com.br', 'apontador.com.br', 'solutudo.com.br',
+    'telelistas.net', 'cnpja.com', 'opencnpj.com', 'reclameaqui.com.br', 'mercadolivre.com.br', 'olx.com.br',
+    'wikipedia.org', 'tiendeo.com.br', 'redalyc.org', 'scielo.br', 'publicnow.com', 'mziq.com', 'nsctotal.com.br',
+    'globo.com', 'uol.com.br', 'estadao.com.br', 'exame.com', 'infomoney.com.br', 'terra.com.br', 'r7.com',
+    'abinee.org.br', 'core-sp.org.br', 'portaldatransparencia.gov.br',
+})
+ARTICLES = frozenset({'a', 'o', 'as', 'os'})
+CORPORATE_WORDS = frozenset({'ltda', 'limitada', 'eireli', 'me', 'epp', 'sa', 'cia', 'companhia'})
+CONNECTORS = frozenset({'e', 'de', 'da', 'do', 'das', 'dos'})
+
+
+def platform_site(url):
+    host = (urlsplit(url).hostname or '').lower().rstrip('.')
+    return any(host == domain or host.endswith('.' + domain) for domain in PLATFORM_DOMAINS)
+
+
+def clean_name(name):
+    """Nome para a busca: sem artigo inicial, pontuação e termos societários
+    ("A MELAU PET" → "MELAU PET"; "A. ANGELONI & CIA. LTDA" → "ANGELONI")."""
+    text = re.sub(r'\bS\s*/\s*A\b|\bS\.\s*A\.?', ' ', name or '', flags=re.I)
+    words = re.sub(r"[&.,;:/\\()\"'\-]+", ' ', text).split()
+    while words and words[0].lower() in ARTICLES:
+        words = words[1:]
+    return ' '.join(word for word in words if word.lower() not in CORPORATE_WORDS)
+
+
+def web_queries(company):
+    """Busca principal com os nomes limpos (fantasia OU razão social) e a
+    localidade; alternativa com o nome mais completo e "contato"."""
+    names = list(dict.fromkeys(n for n in (clean_name(company.trade_name), clean_name(company.legal_name)) if n))
+    exclusions = ' '.join('-site:' + host for host in SEARCH_EXCLUSIONS)
+    if not names:
+        return [f'"{company.cnpj}" {exclusions}']
+    location = ' '.join(v for v in (' '.join(company.city.split()), company.state) if v)
+    primary = ' OR '.join(f'"{name}"' for name in names[:2])
+    alternative = f'{max(names, key=len)} {location} contato'
+    return [' '.join(f'{primary} {location} {exclusions}'.split()), ' '.join(f'{alternative} {exclusions}'.split())]
+
+
+def domain_guesses(company):
+    """Rótulos .com.br deduzidos do nome (ex.: "melaupetcaetano"). Só servem para
+    tentar o domínio; a confirmação continua exigindo o CNPJ na página."""
+    labels = []
+    for name in (clean_name(company.legal_name), clean_name(company.trade_name)):
+        words = [w for w in folded(name).split() if w not in CONNECTORS]
+        if words:
+            labels += [''.join(words), ''.join(words[:2])]
+    return [label for label in dict.fromkeys(labels) if 4 <= len(label) <= 40 and label.isascii() and label.isalnum()][:3]
+
+
+def domain_exists(host):
+    """DNS com endereço público (mesma proteção SSRF do acesso). Não acessa o site."""
+    try:
+        resolve_public(host, 443)
+        return True
+    except (OSError, ValueError, UnicodeError):
+        return False
+
+
+def guessed_sites(company, limit=2):
+    found = []
+    for label in domain_guesses(company):
+        for host in (f'www.{label}.com.br', f'{label}.com.br'):
+            if domain_exists(host):
+                found.append(f'https://{host}/')
+                break
+        if len(found) >= limit:
+            break
+    return found
+
+
+def root_site(url):
+    """Domínio principal de um subdomínio da marca (institucional.angeloni.com.br
+    → www.angeloni.com.br), se existir no DNS."""
+    labels = (urlsplit(url).hostname or '').lower().rstrip('.').split('.')
+    size = 3 if len(labels) >= 3 and labels[-1] in {'br', 'uk', 'au', 'nz'} and labels[-2] in {
+        'com', 'net', 'org', 'co', 'ind', 'edu', 'gov'} else 2
+    if len(labels) <= size or labels[:-size] == ['www']:
+        return None
+    root = '.'.join(labels[-size:])
+    return next((f'https://{host}/' for host in ('www.' + root, root) if domain_exists(host)), None)
+
+
+def display_root(url):
+    """Endereço exibido: a raiz do site, preservando prefixo de país/idioma (/br/)."""
+    parts = urlsplit(url)
+    segments = [s for s in parts.path.split('/') if s]
+    prefix = f'/{segments[0]}/' if segments and re.fullmatch(r'[a-z]{2}(?:-[a-z]{2})?', segments[0], re.I) else '/'
+    return f'{parts.scheme}://{parts.netloc}{prefix}'
+
+
+def social_profile(url):
+    """Post ou página interna de rede social → perfil (facebook.com/marca/)."""
+    parts = urlsplit(url)
+    host = (parts.hostname or '').lower()
+    segments = [s for s in parts.path.split('/') if s]
+    if host.endswith('facebook.com') and len(segments) > 1 and segments[1] in {'posts', 'videos', 'photos', 'reviews', 'about', 'events'}:
+        return f'https://www.facebook.com/{segments[0]}/'
+    return url
+
+
+def format_cnpj(number):
+    return f'{number[:2]}.{number[2:5]}.{number[5:8]}/{number[8:12]}-{number[12:]}'
 
 
 def brand_site(company, url):
@@ -134,15 +262,29 @@ def payload_for(state, partial=False):
     payload['site_matriz']=[]
     if matriz:
         head=matriz.signals.get('matriz_cnpj','')
-        item=link(matriz.website,'SITE_DA_MATRIZ','MEDIA',
-            f'O site mostra o CNPJ da matriz ({head[:2]}.{head[2:5]}.{head[5:8]}/{head[8:12]}-{head[12:]}); '
-            'a filial consultada não aparece nas páginas verificadas.')
+        item=link(display_root(matriz.website),'SITE_DA_MATRIZ','MEDIA',
+            f'O site mostra o CNPJ da matriz ({format_cnpj(head)}); a filial consultada não aparece nas páginas verificadas.')
         if item:
             payload['site_matriz']=[item];payload['status']='SITE_DA_MATRIZ'
+    if payload['website_oficial'] and final.signals.get('mesma_raiz'):
+        payload['website_oficial']['ressalvas']=[
+            f'Confirmado pelo CNPJ de outro estabelecimento da mesma empresa ({format_cnpj(final.signals["mesma_raiz"])}).']
     for item in payload['possiveis_sites']:
         failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],item['url'])),None)
-        if failed:item['ressalvas']=['Validação não concluída: '+site_reason(failed['error'],failed.get('http_status'))+'.']
+        if failed:item['ressalvas']=['Validação não concluída: '+failure_reason(failed)+'.']
     payload['possiveis_sites'].extend(other_sites(company,state,payload))
+    # Exibe a raiz do site (não a página interna) e o perfil social (não o post).
+    unique=[]
+    for item in payload['possiveis_sites']:
+        root=display_root(item['url'])
+        if not any(same_site(root,u['url']) and display_root(u['url'])==root for u in unique):
+            unique.append(dict(item,url=root,dominio=urlsplit(root).hostname))
+    payload['possiveis_sites']=unique
+    socials=[]
+    for item in payload['redes_sociais']:
+        profile=social_profile(item['url'])
+        if profile not in [s['url'] for s in socials]:socials.append(dict(item,url=profile))
+    payload['redes_sociais']=socials
     mark_google_panel(payload,state)
     # Grupo próprio para o site indicado pelo painel do Google (nunca oficial por isso).
     payload['indicado_google']=[i for i in payload['possiveis_sites'] if i.get('indicado_google')]
@@ -159,16 +301,37 @@ def payload_for(state, partial=False):
     return payload
 
 
-def candidate_sites(company,cnpj,urls,limit=MAX_SITES,first=None):
-    """Um endereço por site: primeiro o indicado pelo painel do Google, depois
-    domínios compatíveis com a marca. Ordem de validação, não de confiança."""
-    sites=[]
-    ranked=rank_candidates(company,[u for u in urls if not url_reason(u,cnpj)])
+def candidate_sites(company,cnpj,urls,limit=MAX_SITES,first=None,extra=()):
+    """Ordem de validação (não de confiança), um endereço por site:
+    painel do Google, domínios e subdomínios da marca, sites adicionados pela
+    descoberta (raiz do domínio, palpites pelo nome) e, só sem nenhum desses,
+    um único candidato sem a marca. Plataformas e terceiros ficam de fora."""
+    eligible=[u for u in urls if not url_reason(u,cnpj) and not platform_site(u)]
+    ranked=rank_candidates(company,eligible)
     if first and first in ranked:
         ranked=[first]+[u for u in ranked if u!=first]
+    sites=[]
+    def add(url):
+        if url and not any(same_site(url,site) for site in sites):sites.append(url)
     for url in ranked:
-        if not any(same_site(url,site) for site in sites):sites.append(url)
+        if url==first or brand_site(company,url):add(url)
+    for url in extra:
+        if not url_reason(url,cnpj) and not platform_site(url):add(url)
+    if not sites and ranked:
+        add(ranked[0])
     return sites[:limit]
+
+
+def discovery(company,cnpj,candidates,panel=None):
+    """Acrescenta, sem chamar a Serper, a raiz dos subdomínios da marca e, se a
+    busca não trouxe nenhum domínio da marca, até 2 domínios deduzidos do nome
+    que existam no DNS. Devolve (sites, adicionados, palpites)."""
+    found=candidate_sites(company,cnpj,candidates,first=panel)
+    branded=[u for u in found if u==panel or brand_site(company,u)]
+    roots=[r for r in (root_site(u) for u in branded if domain_brand_match(company,urlsplit(u).hostname or '')) if r]
+    guesses=[] if branded else guessed_sites(company)
+    added=list(dict.fromkeys(roots+guesses))
+    return candidate_sites(company,cnpj,candidates,first=panel,extra=added),added,guesses
 
 
 def matriz_cnpj(company,page):
@@ -177,12 +340,51 @@ def matriz_cnpj(company,page):
     Indica o site do grupo; não confirma a filial."""
     if company.cnpj[8:12]=='0001' or not brand_site(company,page.url):
         return None
-    visible=VisibleText();visible.feed(page.text)
-    numbers=extract_cnpjs(' '.join(visible.parts))
+    numbers=page_cnpjs(page)
     root=company.cnpj[:8]
     if not numbers or any(number[:8]!=root for number in numbers):
         return None
     return next((number for number in sorted(numbers) if number[8:12]=='0001'),None)
+
+
+def name_domain(company,url):
+    """Domínio cujo rótulo é o próprio nome da empresa (ex.: fgprime.com.br para
+    "FG PRIME"), inclusive com sigla curta que a regra de marca ignora."""
+    labels=(urlsplit(url).hostname or '').lower().removeprefix('www.').split('.')
+    return bool(labels) and labels[0] in domain_guesses(company)
+
+
+def with_name_domain(company,url,result):
+    """Considera o domínio-nome como domínio da marca; a confirmação continua
+    exigindo CNPJ exato, nome, titularidade e marca no título."""
+    if result.site_type not in {'CORPORATE','CORPORATE_CANDIDATE'} or result.signals.get('brand_domain') or not name_domain(company,url):
+        return result
+    signals=dict(result.signals,brand_domain=True,dominio_do_nome=True)
+    strong=all(signals.get(k) is True for k in ('exact_cnpj','name_match','legal_owner','heading_brand'))
+    return replace(result,signals=signals,confirmed=strong,confidence='ALTA' if strong else result.confidence,
+                   site_type='CORPORATE' if strong else result.site_type,
+                   evidence=list(result.evidence)+['Domínio formado pelo nome da empresa'])
+
+
+def page_cnpjs(page):
+    visible=VisibleText();visible.feed(page.text)
+    return extract_cnpjs(' '.join(visible.parts))
+
+
+def same_company_validation(company,page):
+    """Matriz consultada e página só com outro estabelecimento da mesma raiz
+    (ex.: 00.623.904/0003-xx): a raiz identifica a mesma pessoa jurídica, então
+    reavalia a página com esse CNPJ e exige as mesmas evidências fortes."""
+    numbers=page_cnpjs(page)
+    root=company.cnpj[:8]
+    if company.cnpj[8:12]!='0001' or not numbers or any(number[:8]!=root for number in numbers):
+        return None
+    other=sorted(numbers)[0]
+    result=classify(replace(company,cnpj=other),page)
+    if result.site_type not in {'CORPORATE','CORPORATE_CANDIDATE'}:
+        return None
+    return replace(result,signals=dict(result.signals,mesma_raiz=other),evidence=list(result.evidence)+[
+        f'CNPJ de outro estabelecimento da mesma empresa ({format_cnpj(other)})'])
 
 
 def preferred_site(company,url,state):
@@ -207,11 +409,15 @@ def other_sites(company,state,payload):
     shown=[i['url'] for i in payload['possiveis_sites']+payload.get('site_matriz',[])]+([payload['website_oficial']['url']] if payload['website_oficial'] else [])
     rejected=[v.get('website','') for v in state.get('site_results',[]) if v.get('site_type') in {'THIRD_PARTY','CNPJ_DIVERGENTE'}]
     visited={v.get('website',''):v for v in state.get('site_results',[]) if v.get('website')}
+    guesses=state.get('guessed_sites',[])
     extra=[]
-    for url in candidate_sites(company,company.cnpj,state.get('candidates',[]),limit=4,first=state.get('google_panel_site')):
+    for url in candidate_sites(company,company.cnpj,state.get('candidates',[]),limit=4,first=state.get('google_panel_site'),
+                               extra=state.get('added_sites',[])):
         if any(same_site(url,u) for u in shown+rejected if u):continue
         failed=next((f for f in state.get('site_failures',[]) if same_site(f['url'],url)),None)
         seen=next((v for u,v in visited.items() if same_site(u,url)),None)
+        # Domínio deduzido do nome só aparece se a página foi acessada.
+        if any(same_site(url,g) for g in guesses) and not seen:continue
         # Páginas de terceiros sem a marca (associações, catálogos) não viram
         # "possível site" só por terem falhado ou não terem sido visitadas.
         if seen and (seen.get('confidence')=='MEDIA' or preferred_site(company,url,state)):
@@ -221,11 +427,13 @@ def other_sites(company,state,payload):
             continue
         elif failed:
             item=link(url,'POSSIVEL_SITE','PENDENTE','Encontrado na pesquisa; a validação técnica não pôde ser concluída.',
-                      ressalvas=['Validação não concluída: '+site_reason(failed['error'],failed.get('http_status'))+'.'])
+                      ressalvas=['Validação não concluída: '+failure_reason(failed)+'.'])
         elif not seen:
             item=link(url,'POSSIVEL_SITE','NAO_CONFIRMADO','Domínio compatível com o nome da empresa; não visitado nesta consulta.')
         else:
             continue
+        if item and seen and any(same_site(url,g) for g in guesses):
+            item['evidencia']='Domínio deduzido do nome da empresa; página acessada, titularidade não confirmada.'
         if item:extra.append(item)
     return extra[:3]
 
@@ -274,24 +482,32 @@ async def execute_action(cnpj, state, key):
         state.update(company=company.__dict__,phase='BUSCA')
     elif state['phase']=='BUSCA':
         company=Company(**state['company'])
+        search_round=state.get('search_round',0)
         data=await provider_json('POST',SEARCH_ENDPOINT,key=key,
-            payload={'q':queries_for(company)[0],'gl':'br','hl':'pt-br','num':10})
+            payload={'q':web_queries(company)[min(search_round,1)],'gl':'br','hl':'pt-br','num':10})
         if not isinstance(data.get('organic'),list):raise ProviderError('RESPOSTA_INVALIDA')
         urls=search_urls(data)
-        candidates=[]
+        candidates=list(state.get('candidates',[])) if search_round else []
         for url in urls:
             try:clean,_,_=safe_url(url)
             except (ValueError,TypeError):continue
             if clean not in candidates:candidates.append(clean)
         # Só a URL do painel do Google é guardada (atribuição), nunca o painel.
         graph=data.get('knowledgeGraph')
-        panel=None
-        if isinstance(graph,dict) and isinstance(graph.get('website'),str):
+        panel=state.get('google_panel_site') if search_round else None
+        if not panel and isinstance(graph,dict) and isinstance(graph.get('website'),str):
             try:panel=safe_url(graph['website'])[0]
             except (ValueError,TypeError):panel=None
-        state['google_panel_site']=panel
-        sites=candidate_sites(company,cnpj,candidates,first=panel)
-        state.update(candidates=candidates[:10],searched_at=datetime.now(timezone.utc).isoformat(),robots={},
+        state.update(google_panel_site=panel,searched_at=datetime.now(timezone.utc).isoformat(),searches=search_round+1)
+        found=candidate_sites(company,cnpj,candidates,first=panel)
+        branded=any(u==panel or brand_site(company,u) for u in found)
+        # Segunda busca só se a política permitir (padrão: 1) e a primeira não
+        # trouxe nenhum domínio da marca. Cada busca é uma etapa e uma reserva.
+        if not branded and search_round+1<state.get('max_searches',1):
+            state.update(candidates=candidates[:20],search_round=search_round+1)
+            return state
+        sites,added,guesses=discovery(company,cnpj,candidates,panel)
+        state.update(candidates=candidates[:20],added_sites=added,guessed_sites=guesses,robots={},
             queue=sites[:1],sites=sites[1:],current_site=sites[0] if sites else None,site_results=[],site_failures=[],
             redirects=[],web_calls=0,validations=[],phase='WEBSITE' if sites else 'DONE')
     elif state['phase']=='WEBSITE':
@@ -305,7 +521,9 @@ async def execute_action(cnpj, state, key):
             await website_step(company,cnpj,state)
         except ProviderError as exc:
             status=exc.details.get('http_status')
-            page_failed(state,exc.code,status if type(status) is int else None)
+            connection=exc.details.get('conexao')
+            page_failed(state,exc.code,status if type(status) is int else None,
+                        connection if connection in CONNECTION_REASONS else None)
         except ValueError:
             # UnsafeURL é ValueError; nenhuma mensagem bruta (URL/IP) é persistida.
             page_failed(state,'URL_INSEGURA')
@@ -326,13 +544,14 @@ def best_site(state):
     return max(usable,key=quality) if usable else None
 
 
-def close_site(state,failure=None,http_status=None):
+def close_site(state,failure=None,http_status=None,connection=None):
     """Encerra o site atual, registrando a validação obtida ou a falha técnica."""
     if state.get('site_validation'):
         state['site_results']=state.get('site_results',[])+[state['site_validation']]
     elif failure and state.get('current_site'):
         record=dict(url=state['current_site'],error=failure)
         if http_status:record['http_status']=http_status
+        if connection:record['conexao']=connection
         state['site_failures']=state.get('site_failures',[])+[record]
     state.update(site_validation=None,validations=[],queue=[],redirects=[],robots_url=None,robots_redirects=[])
     best=best_site(state)
@@ -358,7 +577,9 @@ def finish_websites(state):
     best=best_site(state)
     failures=state.get('site_failures',[])
     company=Company(**state['company'])
-    branded=[f for f in failures if preferred_site(company,f['url'],state)]
+    # Falha num domínio só deduzido do nome não vira candidato a revisar.
+    branded=[f for f in failures if preferred_site(company,f['url'],state)
+             and not any(same_site(f['url'],g) for g in state.get('guessed_sites',[]))]
     if best:
         final=best
     elif branded:
@@ -377,7 +598,7 @@ def finish_websites(state):
     return state
 
 
-def page_failed(state,code,http_status=None):
+def page_failed(state,code,http_status=None,connection=None):
     """Página secundária falha sem perder o site; a inicial encerra só o candidato."""
     if code=='TERCEIRO' and not state.get('validations'):
         rejected=Validation(website=state.get('current_site') or '',site_type='THIRD_PARTY',rules_version=RULES_VERSION,
@@ -387,10 +608,11 @@ def page_failed(state,code,http_status=None):
     if state.get('validations'):
         failure=dict(url=(state.get('queue') or [''])[0],error=code)
         if http_status:failure['http_status']=http_status
+        if connection:failure['conexao']=connection
         state['page_failures']=state.get('page_failures',[])+[failure]
         state.update(queue=state['queue'][1:],redirects=[],robots_url=None,robots_redirects=[])
         return state if state['queue'] else close_site(state)
-    return close_site(state,code,http_status)
+    return close_site(state,code,http_status,connection)
 
 
 async def website_step(company,cnpj,state):
@@ -441,13 +663,25 @@ async def website_step(company,cnpj,state):
     page.redirect_chain=state.get('redirects',[])
     result,validations=merged_validation(company,state,classify(company,page))
     if result.site_type=='CNPJ_DIVERGENTE':
-        head=matriz_cnpj(company,page)
-        if head:
+        same=same_company_validation(company,page)
+        head=None if same else matriz_cnpj(company,page)
+        if same:
+            # Matriz consultada; página com outro estabelecimento da mesma raiz.
+            result=same
+        elif head:
             # Aponta para a página inicial do site, mesmo que o CNPJ esteja numa página interna.
             site=next((v['website'] for v in validations if v.get('website')),'') or safe_url(page.url)[0]
             result=Validation(website=site,domain=(urlsplit(site).hostname or '').removeprefix('www.'),
                 confidence='MEDIA',score=50,accessible=True,rules_version=RULES_VERSION,site_type='MATRIZ_SITE',
                 evidence=['CNPJ da matriz na página; a filial consultada não aparece'],signals={'matriz_cnpj':head})
+        else:
+            # Recusado, mas registrado como visitado e com as inscrições vistas.
+            result=replace(result,website=result.website or safe_url(page.url)[0],
+                signals=dict(result.signals,cnpjs_encontrados=sorted(page_cnpjs(page))[:5]))
+        validations=validations[:-1]+[result.to_dict()]
+    named=with_name_domain(company,page.url,result)
+    if named is not result:
+        result=named;validations=validations[:-1]+[result.to_dict()]
     queue=state['queue'][1:]
     if not state.get('validations') and not result.confirmed and result.site_type=='CORPORATE_CANDIDATE':
         visible=VisibleText();visible.feed(page.text)

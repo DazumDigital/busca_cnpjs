@@ -114,6 +114,24 @@ def same_site(left, right):
     return (urlsplit(left).hostname or '').removeprefix('www.') == (urlsplit(right).hostname or '').removeprefix('www.')
 
 
+def connection_category(exc):
+    """Categoria fixa de uma falha antes da resposta HTTP, para diagnóstico."""
+    import ssl
+    if isinstance(exc, TimeoutError):
+        return 'TEMPO_ESGOTADO'
+    if isinstance(exc, ssl.SSLCertVerificationError):
+        return 'TLS_CERTIFICADO'
+    if isinstance(exc, ssl.SSLError):
+        return 'TLS'
+    if isinstance(exc, ConnectionRefusedError):
+        return 'CONEXAO_RECUSADA'
+    if isinstance(exc, socket.gaierror):
+        return 'DNS'
+    if isinstance(exc, (ConnectionResetError, ConnectionAbortedError, http.client.RemoteDisconnected)):
+        return 'CONEXAO_ENCERRADA'
+    return 'CONEXAO'
+
+
 class SafeFetcher:
     def __init__(self, quota, settings, *, truncate=False, any_text=False):
         self.quota, self.settings = quota, settings
@@ -185,7 +203,8 @@ class SafeFetcher:
                 self.quota.finish(reservation, "FALHA_VALIDACAO")
                 if isinstance(exc, (UnsafeURL, ProviderError)):
                     raise
-                raise ProviderError("SITE_INACESSIVEL") from None
+                # Só a categoria da falha (sem mensagem bruta, URL ou IP).
+                raise ProviderError("SITE_INACESSIVEL", details={'conexao': connection_category(exc)}) from None
             self.quota.finish(reservation, "SUCESSO" if result.status < 400 else "FALHA_HTTP", result.status)
             if result.status in (429, 503):
                 from app.providers.base import retry_after

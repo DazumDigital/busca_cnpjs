@@ -55,6 +55,15 @@ O `robots.txt` segue a RFC 9309: 200 é interpretado; 4xx (exceto 429) significa
 
 Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do site, redirecionamentos) **não derrubam a consulta**: o resultado é concluído e salvo com o status `FALHA_VALIDACAO_SITE_OFICIAL` e o candidato aparece em "Possíveis sites" com o motivo. Se a cota total de websites do manifesto acabar no meio da validação, a consulta também é concluída localmente com o que já foi obtido, sem nova chamada.
 
+### Descoberta de sites (melhorias de 10/11/2026, após a etapa 1a)
+
+- **Busca**: nomes limpos (sem artigo inicial, "& CIA", "LTDA", "S/A"), nome fantasia **ou** razão social e a localidade, sem "site oficial". Ex.: `"MELAU PET" OR "MELAU PET CAETANO" JOINVILLE SC`. Uma busca por CNPJ; a segunda busca (nome completo + "contato") só existe se a política tiver `"max_searches_per_cnpj": 2` e a primeira não trouxer domínio da marca — decisão de custo, desligada por padrão. O token continua 1 por pesquisa.
+- **Ordem de validação**: site do painel do Google, domínios e subdomínios da marca, **raiz do domínio** de um subdomínio da marca (ex.: `institucional.angeloni.com.br` → `www.angeloni.com.br`, se existir no DNS) e, se a busca não trouxe nenhum domínio da marca, até 2 **domínios deduzidos do nome** que existam no DNS (ex.: `melaupetcaetano.com.br`). Só sem nenhum desses é validado **um** candidato sem a marca.
+- **Plataformas de terceiros** (mapas, vagas, jurídico, diretórios, notícias, associações, portais públicos) não gastam acessos nem aparecem como possível site; podem continuar como referência.
+- **Mesma raiz de CNPJ**: para matriz consultada, uma página com outro estabelecimento da mesma raiz (mesma pessoa jurídica) é reavaliada com as mesmas evidências fortes e pode ser confirmada como oficial, com a observação. Para filial, continua a categoria "Site da matriz".
+- **Domínio formado pelo nome** (inclusive sigla curta, ex.: `fgprime.com.br`) conta como domínio da marca; a confirmação exige CNPJ, nome, titularidade e marca no título.
+- **Exibição**: raiz do site (não a página interna), perfil social (não o post), motivo da falha com o código HTTP ou a categoria da conexão (tempo esgotado, certificado TLS, conexão recusada, DNS). Domínio deduzido que falhou não aparece.
+
 ### Regra de tokens (aprovada em 10/11/2026; substitui a de 09/11)
 
 - **1 token** por **pesquisa real concluída**: cadastro e busca responderam e o resultado foi salvo, com ou sem site oficial confirmado e mesmo sem links.

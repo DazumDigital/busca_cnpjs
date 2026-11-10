@@ -244,7 +244,8 @@ def test_unbranded_third_party_pages_are_not_possible_sites(live_web, monkeypatc
                             'https://www.iecee.org/members/member-bodies/acme-drives-controls-ltda'], {})
     identity, query = start(live_web)
     result = run_until_done(live_web[1], identity, query['id'])['resultado']
-    assert [p['url'] for p in result['possiveis_sites']] == ['https://www.acmeparafusos.com.br/', 'https://acme.gupy.io/']
+    # Portal de vagas (Gupy) também é plataforma de terceiro desde 10/11/2026.
+    assert [p['url'] for p in result['possiveis_sites']] == ['https://www.acmeparafusos.com.br/']
     assert result['status'] == 'FALHA_VALIDACAO_SITE_OFICIAL'
 
 

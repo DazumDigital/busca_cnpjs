@@ -48,6 +48,10 @@ def valid_policy(policy):
         interval = limits.get('min_interval', 0)
         if type(interval) not in (int, float) or not math.isfinite(interval) or not 0 <= interval <= 86400:
             return False
+    # Segunda busca por CNPJ (só quando a primeira não traz domínio da marca):
+    # desligada por padrão; ligar é decisão de custo do responsável.
+    if policy['serper'].get('max_searches_per_cnpj', 1) not in (1, 2) or type(policy['serper'].get('max_searches_per_cnpj', 1)) is not int:
+        return False
     try:
         return not policy_reason(policy['serper'], search=True)
     except AttributeError:
@@ -189,6 +193,8 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
         conn.execute(update(external_control).where(external_control.c.id=='global').values(lease_until=lease_until))
         conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='IN_FLIGHT',lease_until=lease_until,updated_at=now))
     error=None; result=None;cooldown=0;paused=False
+    if provider=='serper':
+        state=dict(state,max_searches=policy['serper'].get('max_searches_per_cnpj',1))
     try:
         # One fixed API request or one protected website fetch, with an 8s
         # timeout per transport. The budget stays below maxDuration=30.
@@ -268,7 +274,7 @@ def restart_websites(store,cnpj,clock=time.time):
     candidatos já obtidos. Não reserva Serper nem cadastro; o histórico da
     rodada anterior fica no estado e o livro técnico não é alterado."""
     from app.models import Company
-    from app.web.live_sources import candidate_sites
+    from app.web.live_sources import discovery
     with store.transaction() as conn:
         control=conn.execute(select(external_control).where(external_control.c.id=='global').with_for_update()).mappings().first()
         if control and control['lease_until']>clock():
@@ -279,7 +285,9 @@ def restart_websites(store,cnpj,clock=time.time):
         state=json.loads(job['state'])
         if not state.get('company') or not state.get('searched_at'):
             raise ValueError('Pesquisa sem busca registrada')
-        sites=candidate_sites(Company(**state['company']),cnpj,state.get('candidates',[]),first=state.get('google_panel_site'))
+        # Mesma descoberta da pesquisa nova (raiz do domínio e palpites com DNS),
+        # sempre com os links já guardados: nenhuma nova busca na Serper.
+        sites,added,guesses=discovery(Company(**state['company']),cnpj,state.get('candidates',[]),state.get('google_panel_site'))
         if not sites:
             raise ValueError('Nenhum candidato a site para validar')
         runs=state.get('website_runs',[])+[dict(finished_at=job['updated_at'],web_calls=state.get('web_calls',0),
@@ -288,7 +296,8 @@ def restart_websites(store,cnpj,clock=time.time):
                      'robots_redirects','validations','site_validation','crawl_delay'):
             state.pop(name,None)
         state.update(phase='WEBSITE',queue=sites[:1],sites=sites[1:],current_site=sites[0],site_results=[],site_failures=[],
-                     web_calls=0,robots={},validations=[],redirects=[],website_runs=runs,revalidation=True)
+                     web_calls=0,robots={},validations=[],redirects=[],website_runs=runs,revalidation=True,
+                     added_sites=added,guessed_sites=guesses)
         conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='READY',error=None,result=None,
             lease_until=0,step=job['step']+1,state=json.dumps(state,ensure_ascii=False),updated_at=clock()))
         return dict(sites=sites,rodadas_anteriores=len(runs))
