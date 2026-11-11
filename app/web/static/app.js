@@ -123,7 +123,9 @@ async function showConsultation(data, focus=true) {
   if(running) {
     $('results').hidden=true;
     $('progress-panel').querySelector('p').textContent=data.retry_after?waitMessage(data.retry_after):data.status==='CONCLUIDA'?'Revalidando os sites já encontrados, sem nova busca paga e sem novo token.':({CADASTRO:'Identificando a empresa na base cadastral.',BUSCA:'Pesquisando websites e referências.',WEBSITE:'Validando os candidatos com segurança.'})[data.etapa_pesquisa] || 'Pesquisa registrada. O progresso permanece salvo.';
-    if(state.external)state.poll=setTimeout(async()=>{
+    // Even with external search off, the server settles a pending consultation
+    // (saved result at no cost, or closed with the reservation returned).
+    state.poll=setTimeout(async()=>{
       try{const next=await api('/api/consultas/'+encodeURIComponent(data.id)+'/processar',{method:'POST'});await showConsultation(next,false);await history();}
       catch(error){$('search-error').textContent=error.message+' Reabra a consulta pelo histórico para retomar.';}
     },Math.max(1500,(data.retry_after || 0)*1000));
@@ -188,7 +190,7 @@ async function history() {
   const entries=await api('/api/consultas'); $('history-list').replaceChildren();
   if(!entries.length) $('history-list').append(node('p','data-note','Suas consultas aparecerão aqui.'));
   for(const entry of entries) {
-    const row=node('div','history-row'), info=node('div',''); info.append(node('span','history-cnpj',mask(entry.cnpj)),node('p','',new Date(entry.criado_em*1000).toLocaleString('pt-BR')+' · '+(processing[entry.status] || 'Registrada')));
+    const row=node('div','history-row'), info=node('div',''); info.append(node('span','history-cnpj',mask(entry.cnpj)+(entry.empresa?' · '+entry.empresa:'')),node('p','',new Date(entry.criado_em*1000).toLocaleString('pt-BR')+' · '+(processing[entry.status] || 'Registrada')));
     const open=node('button','','Reabrir consulta ↗'); open.addEventListener('click',()=>reopen(entry.id)); row.append(info,open); $('history-list').append(row);
   }
 }
@@ -231,8 +233,8 @@ function showBatch(data) {
   for(const item of data.itens) {
     const name=item.resultado?.empresa?.nome_fantasia || item.resultado?.empresa?.razao_social;
     const found=item.resultado || {};
-    const site=found.website_oficial?'Site oficial confirmado':found.site_matriz?.length?'Site da matriz (filial não confirmada)':(found.possiveis_sites?.length || found.indicado_google?.length)?'Possível site para revisão':'Sem site oficial confirmado';
-    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?(item.token_consumido===false?'Concluída · resultado já salvo, reaproveitado · sem custo':'Concluída · 1 token · '+site):({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
+    const site=found.website_oficial?'Site oficial confirmado':found.verificacao_manual?'Verificação manual informada':found.site_matriz?.length?'Site da matriz (filial não confirmada)':(found.possiveis_sites?.length || found.indicado_google?.length)?'Possível site para revisão':'Sem site oficial confirmado';
+    const row=node('div','history-row'), info=node('div');info.append(node('span','history-cnpj',mask(item.cnpj)+(name?' · '+name:'')),node('p','',item.erro?failureMessage(item.erro):item.status==='CONCLUIDA'?(item.token_consumido===false?'Concluída · resultado já salvo, sem custo · '+site:'Concluída · 1 token · '+site):({PENDENTE_LOTE:'Pendente',EM_PROCESSAMENTO:'Em andamento',FALHOU:'Não concluída'})[item.status] || item.status));
     row.append(info);if(item.resultado){const button=node('button','','Ver resultado ↗');button.type='button';button.addEventListener('click',()=>reopen(item.id));row.append(button);}$('batch-items').append(row);
   }
   exportButtons($('batch-exports'),'/api/lotes/'+encodeURIComponent(data.id)+'/exportar');

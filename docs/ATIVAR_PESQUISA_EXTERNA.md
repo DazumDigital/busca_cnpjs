@@ -1,28 +1,32 @@
 # Ativar a pesquisa externa no Busca CNPJs
 
-O piloto usa **uma conta isolada, um CNPJ válido e inédito e até uma chamada à Serper**. Os tokens de teste pertencem à organização de QA; não use o saldo da equipe. Em caso de falha ou execução incerta, não repita a chamada sem revisar a auditoria e obter nova autorização.
+A pesquisa externa (cadastro na Minha Receita, busca na Serper e validação de sites) só é ligada por **etapas aprovadas pelo proprietário**. Fora delas, a produção fica com `WEB_ENABLE_EXTERNAL=false` e a política bloqueada no Neon. A equipe continua consultando e exportando os resultados salvos, sem custo.
 
-## Antes de habilitar
+## Procedimento de ativação de uma etapa
 
-1. No painel da [Serper](https://serper.dev/), confirme a conta que emitirá a chave, o saldo exclusivamente gratuito e a data/hora UTC da conferência (validade de até 24 horas no app). Confirme ausência de cartão ou outro meio de cobrança, créditos pagos, recarga automática e cobrança por excedente. Confirme o limite aplicável à conta e as condições de uso automatizado e armazenamento de links. A oferta pública de créditos não comprova a situação da conta.
-2. Obtenha autorização explícita para configurar a chave, habilitar a pesquisa **somente para o piloto** e executar uma pesquisa para o CNPJ informado. Verifique que ele não esteja no histórico da equipe nem no cache de pesquisas anteriores.
-3. Publique a correção de empacotamento a partir da revisão aprovada no Git, com a pesquisa desligada. Verifique o deployment de Git na Vercel: `/api/health` deve responder 200 no domínio autorizado e `/api/lotes` deve responder 401 sem sessão. Preserve as variáveis de banco, ambiente e origem já existentes. A configuração continua sem deploy automático por push.
+1. **Billing da Serper**: o proprietário confere no painel o saldo gratuito, a ausência de cartão e pagamentos e a recarga automática desativada. Registre a data e hora UTC da conferência.
+2. **Autorização no chat**:
+   - escopo (organização e, se for o caso, CNPJs);
+   - tetos por provedor (total, por minuto, hora e dia);
+   - número máximo de tokens.
+3. **Livro técnico atual** (`external-status`): os tetos `max_requests` são **acumulados**. Some a margem aprovada ao consumo já registrado. Para impedir chamadas a um provedor, use teto igual ao consumo.
+4. **Manifesto privado**, fora do Git, em `%USERPROFILE%\.dazum-secrets\`:
+   - `allowed_organizations`;
+   - `allowed_cnpjs` (opcional);
+   - os três provedores;
+   - na seção `serper`: `confirmed_free_remaining`, `balance_verified_at`, `balance_valid_hours` (até 168 h na rotina semanal), `reviewed_on`, `expires_on`, `evidence` e os booleanos de verificação.
+5. **Aplicar** com `configure-external` (comando abaixo). A chave é lida do ambiente local e só o hash fica no Neon. O comando não chama provedores, não altera tokens e não limpa o livro técnico. Aplicar um manifesto **desbloqueia** a política.
+6. **Ligar a flag** `WEB_ENABLE_EXTERNAL=true` só em Production e **republicar** a `main` homologada (a variável só vale após novo deploy).
+7. **Usar** pela interface. **Auditar** no fim da etapa (seção "Bloqueio, auditoria e recuperação").
+8. **Encerrar**: `block-external`, flag `false`, republicar e verificar o domínio.
 
-## Configuração, somente após autorização
-
-- Em **Production** do projeto **dazum-digital/busca-cnpjs**, mantenha `WEB_ENV=production`, `WEB_ORIGIN=https://busca-cnpjs.vercel.app` e o `WEB_DATABASE_URL` existente. Use `SERPER_API_KEY` como **Secret**, com a chave da conta verificada. Não envie o valor por chat, em argumentos de comandos ou no Git. Mantenha `WEB_ENABLE_EXTERNAL=false` enquanto prepara o banco.
-- Crie ou use uma organização de teste isolada, com uma conta ativa e um token de teste. Prepare um manifesto privado fora do Git, com `allowed_organizations` contendo só o ID de QA e `allowed_cnpjs` contendo só os 14 dígitos do CNPJ aprovado. Para cada provedor (`serper`, `minhareceita`, `websites`), informe `max_requests`, `per_minute`, `per_hour`, `per_day` e, opcionalmente, `min_interval` em segundos. Os quatro tetos são inteiros positivos; o teto total considera todos os registros técnicos anteriores e não reinicia ao publicar um novo manifesto.
-- No piloto, use **no máximo uma nova chamada Serper e uma cadastral**: para cada um, defina o teto total como o consumo técnico correspondente já registrado no Neon mais um e os tetos por minuto/hora/dia em 1. Para websites, use no máximo oito novas reservas (consumo técnico anterior mais oito), com `per_minute=6`, `per_hour=8`, `per_day=8` e `min_interval=10`; reduza se a regra do site exigir. A [Minha Receita](https://docs.minhareceita.org/) fornece o cadastro, sem chave; as páginas são inspecionadas separadamente, respeitando robots.txt e validação de URLs.
-- Na seção `serper`, registre `confirmed_free_remaining` como o saldo realmente confirmado, `balance_verified_at` como data/hora ISO 8601 em UTC, `reviewed_on` e `expires_on` como datas ISO, e `evidence` com a referência da conferência, sem segredos. Somente após verificar cada condição, confirme `verified`, `free_only`, `no_card`, `no_auto_charge`, `no_paid_credits`, `storage_permitted` e `batch_permitted` como booleanos verdadeiros. Se a evidência faltar, mantenha a pesquisa desligada. O limite local não substitui a ausência de cobrança na conta.
-- Use um arquivo privado de ambiente com o URL Neon já configurado, a **mesma** chave Serper do Secret da Vercel e `WEB_ENABLE_EXTERNAL=false`. Com o terminal na raiz do projeto e o ambiente virtual ativo, execute:
+Para a liberação contínua da equipe (etapas 1b e 2), os passos 1 e 5 se repetem toda semana enquanto a pesquisa estiver ligada.
 
 ```powershell
 python -m app.web.manage --env-file 'CAMINHO_PRIVADO_DO_ENV' configure-external 'CAMINHO_PRIVADO_DO_MANIFESTO'
 ```
 
-O comando registra a política e vincula sua aprovação à chave sem gravar o valor da chave no Neon. Não altera empresas nem tokens comerciais, não limpa o livro técnico e não chama provedores. Se já existir consumo fora do Neon, use o saldo recém-verificado da conta e avalie se o livro legado precisa ser importado com `--legacy-ledger`; não substitua o histórico por um contador zerado.
-
-Só depois disso, defina `WEB_ENABLE_EXTERNAL=true` em Production e faça um novo deployment da revisão validada para aplicar as variáveis. Entre na conta isolada e execute **somente** a pesquisa autorizada. Confirme os dados e fontes na interface, a persistência no Neon, até uma reserva da Serper e o saldo intacto da equipe. Compare o saldo do provedor no painel e volte a desligar a flag após o piloto. A abertura para a equipe ou a autorização de novos CNPJs exige nova decisão de escopo e limites.
+Se já existir consumo fora do Neon, use o saldo recém-verificado da conta e avalie importar o livro legado com `--legacy-ledger`. Nunca substitua o histórico por um contador zerado.
 
 ## Comandos administrativos (todos locais, com o arquivo privado de ambiente)
 
@@ -43,12 +47,47 @@ Use `$py = 'C:\Cristiano\busca_cnpjs\outputs\cnpj-enrichment\.venv\Scripts\pytho
 
 `block-external` grava `blocked: true` na política: nenhuma etapa externa nova é reservada, mesmo com `WEB_ENABLE_EXTERNAL=true`. Para voltar, é preciso rodar `configure-external` com um manifesto revisado. `retry-job` não apaga o livro técnico; a próxima etapa usa um novo identificador de operação e continua contando nas cotas.
 
+## Bloqueio, auditoria e recuperação
+
+**Bloqueio imediato**
+- `block-external` grava `blocked: true` no Neon e vale na hora, sem deploy.
+- Depois, coloque a flag em `false` e republique.
+
+**O que acontece com consultas pendentes no bloqueio:**
+- consultas individuais e itens de lote em andamento são encerrados **sem custo**, com a reserva devolvida (código `PESQUISA_SUSPENSA`, `INTEGRACAO_NAO_VERIFICADA` ou `PESQUISA_NAO_LIBERADA`; com a flag desligada, `EMPRESA_NAO_PESQUISADA`);
+- se o CNPJ já tiver resultado salvo, ele é entregue sem custo;
+- o progresso pago (cadastro e busca) fica guardado: uma nova consulta do mesmo CNPJ, após a reativação, continua do ponto salvo, sem repetir a busca.
+
+**Auditoria de uma etapa** (somente leitura):
+1. `external-status`: política (sem o hash da chave), livro técnico por provedor e resultado, estado das pesquisas.
+2. `balance --org dazumdigital`: tokens consumidos e reservados. A reserva deve voltar a 0.
+3. Conferir no Neon, com uma sessão `READ ONLY`:
+   - um lançamento no livro de tokens por consulta concluída, sem duplicidade;
+   - empresas salvas;
+   - consultas por status;
+   - chamadas novas por provedor dentro dos tetos autorizados.
+4. Logs da Vercel da última hora: `vercel logs --project busca-cnpjs --environment production --since 50m --json`.
+5. Comparar o consumo da Serper com o painel do Billing.
+
+**Recuperação**
+
+| Situação | O que fazer |
+|---|---|
+| Falha transitória no **cadastro** (Minha Receita fora do ar, tempo esgotado, 5xx, 429 repetido) | Nada: uma nova consulta do CNPJ tenta de novo, no máximo uma vez por consulta, dentro das cotas e sem custo |
+| Falha **durante ou depois da busca paga** (Serper) ou etapa interrompida (`ETAPA_INTERROMPIDA`) | Revisar o livro técnico e o Billing; se a chamada não foi cobrada em duplicidade, `retry-job CNPJ --confirmed-reviewed`; a próxima consulta continua da fase salva |
+| Bloqueio pelo provedor (`COTA_ESGOTADA`, `ACESSO_NEGADO`) | A política se bloqueia sozinha. Conferir a conta da Serper antes de um novo `configure-external` |
+| Refazer só os sites de uma pesquisa concluída (melhoria de regras, site que estava fora do ar) | Com autorização: manifesto com Serper e cadastro no teto atual, `revalidate-sites CNPJ --confirmed-authorized`, flag ligada, reabrir a consulta concluída pela interface (uma de cada vez, aguardando terminar), auditar e bloquear. Não cobra token |
+| Lote interrompido (aba fechada, queda de rede) | Reabrir o lote em "Seus lotes" e clicar em **Retomar**. Itens concluídos não são refeitos nem cobrados de novo |
+| Banco indisponível | A interface mostra "conexão com o banco temporariamente indisponível". Nenhuma etapa é reservada sem o banco |
+
+Revalidação de 10/11/2026 (exemplo real): 11 acessos a sites, 0 Serper, 0 cadastro, 0 token. Ver `HOMOLOGACAO_2026-11.md`.
+
 ## Como a pesquisa real funciona
 
 Cada clique ou passo do lote executa **uma** etapa HTTP com no máximo uma chamada externa:
 
 1. **Cadastro** (Minha Receita, sem chave): razão social, nome fantasia, município, UF e situação cadastral. CNPJ ausente na base → `CNPJ_NAO_ENCONTRADO`, sem token.
-2. **Busca** (Serper, 1 crédito): nome + município + "site oficial", excluindo diretórios conhecidos. Somente as URLs são guardadas, nunca a SERP integral.
+2. **Busca** (Serper, 1 crédito): nomes limpos (fantasia ou razão social) e a localidade, excluindo diretórios conhecidos (detalhes em "Descoberta de sites"). Somente as URLs são guardadas, nunca a SERP integral.
 3. **Validação de sites** (até 3 sites candidatos e 8 acessos por consulta, robots.txt respeitado, intervalo mínimo de 10 s): o site é oficial apenas com CNPJ exato, nome, titularidade em rodapé/página legal, marca no título e domínio compatível. Se o primeiro candidato falhar ou for de terceiro, o próximo é tentado.
 
 O `robots.txt` segue a RFC 9309: 200 é interpretado; 4xx (exceto 429) significa que não há regras e o acesso segue; 5xx encerra o candidato. O status HTTP de cada falha fica registrado na pesquisa e aparece no motivo exibido (ex.: "(HTTP 403)"). Proteções anti-robô de CDNs costumam bloquear IPs de datacenter como os da Vercel; nesses casos o candidato fica pendente, com o motivo, e nenhuma técnica de evasão é usada. Só domínios ou subdomínios com a marca da empresa aparecem como "Possíveis sites" quando não puderam ser validados; páginas de terceiros sem a marca não.
@@ -68,6 +107,7 @@ Falhas de um site candidato (bloqueio por robots, site fora do ar, limite do sit
 
 - **1 token** por **pesquisa real concluída**: cadastro e busca responderam e o resultado foi salvo, com ou sem site oficial confirmado e mesmo sem links.
 - **Sem custo**: CNPJ inválido; pesquisa bloqueada antes de executar (política, cota, limite); falha técnica que impeça a conclusão (cadastro ou busca); CNPJ ausente na base cadastral; reabrir ou recarregar uma consulta; revalidar sites (`revalidate-sites`).
+- **Pesquisa suspensa no meio**: a consulta pendente é encerrada sem custo e a reserva volta; o progresso pago fica guardado para uma nova consulta (ver "Bloqueio, auditoria e recuperação").
 - **CNPJ já pesquisado**: o resultado salvo é **reaproveitado sem custo**, com aviso "Resultado já salvo, reaproveitado: nenhum token consumido". Não há nova cobrança sem pesquisa nova. Isso vale também para os 20 registros históricos e para itens de lote (a reserva feita na criação do lote é devolvida).
 - **Atomicidade**: o débito acontece na mesma transação que conclui a consulta; o livro de tokens tem a consulta como chave, então cliques repetidos, concorrência, falha e retomada nunca duplicam o desconto. Cada débito fica registrado com data, organização e consulta.
 - A tela mostra o saldo antes da pesquisa e, ao concluir, "1 token consumido nesta pesquisa · saldo X → Y".
@@ -101,7 +141,7 @@ Limite temporário (HTTP 429) do cadastro ou da busca pausa a etapa até o coold
 
 ## Liberação gradual para a equipe (aprovada em 09/11/2026)
 
-Os tetos `max_requests` são **acumulados** com o livro técnico do Neon. Consumo já registrado (piloto WEG): Serper 1, Minha Receita 1, sites 8. Confira com `external-status` e some a margem aprovada. `balance_valid_hours` aceita até 720 h quando a conta Serper não tem meio de pagamento; o consumo desde `balance_verified_at` nunca passa de `confirmed_free_remaining`. Cada etapa exige nova conferência do Billing da Serper e autorização no chat.
+Os tetos `max_requests` são **acumulados** com o livro técnico do Neon. Consumo já registrado em 11/11/2026 (piloto WEG, etapa 1a e revalidação): Serper 6, Minha Receita 6, sites 41. Confira com `external-status` e some a margem aprovada. `balance_valid_hours` aceita até 720 h quando a conta Serper não tem meio de pagamento; o consumo desde `balance_verified_at` nunca passa de `confirmed_free_remaining`. Cada etapa exige nova conferência do Billing da Serper e autorização no chat.
 
 | Etapa | Escopo | Serper (novas) | Minha Receita (novas) | Sites (novos) |
 |---|---|---|---|---|
@@ -109,19 +149,19 @@ Os tetos `max_requests` são **acumulados** com o livro técnico do Neon. Consum
 | 1b — uso inicial | `dazumdigital`, qualquer CNPJ válido | 30 no total · 2/min · 20/h · 30/dia | 60 · 4/min · 40/h · 60/dia | 240 · 12/min · 200/h · 240/dia |
 | 2 — teto aprovado | `dazumdigital`, qualquer CNPJ, após homologar um lote real de até 15 | 500 · 5/min · 60/h · 150/dia | 1.000 · 10/min · 120/h · 300/dia | 4.000 · 30/min · 600/h · 2.000/dia |
 
-Manifesto da etapa 1b (valores acumulados com o piloto: 1 + 30, 1 + 60, 8 + 240). Na etapa 1a, acrescente `"allowed_cnpjs"` com os 5 CNPJs, sem pontuação.
+Manifesto da etapa 1b (valores acumulados com o livro de 11/11/2026: 6 + 30, 6 + 60, 41 + 240). Para restringir a CNPJs específicos, acrescente `"allowed_cnpjs"` com os CNPJs sem pontuação.
 
 ```json
 {
   "allowed_organizations": ["dazumdigital"],
-  "serper": {"max_requests": 31, "per_minute": 2, "per_hour": 20, "per_day": 30,
+  "serper": {"max_requests": 36, "per_minute": 2, "per_hour": 20, "per_day": 30,
              "confirmed_free_remaining": 2467, "balance_verified_at": "AAAA-MM-DDTHH:MM:SS+00:00",
              "balance_valid_hours": 168, "reviewed_on": "AAAA-MM-DD", "expires_on": "AAAA-MM-DD",
              "evidence": "Billing conferido pelo proprietário: saldo, sem cartão, sem pagamentos, auto top-up desabilitado",
              "verified": true, "free_only": true, "no_card": true, "no_auto_charge": true,
              "no_paid_credits": true, "storage_permitted": true, "batch_permitted": true},
-  "minhareceita": {"max_requests": 61, "per_minute": 4, "per_hour": 40, "per_day": 60},
-  "websites": {"max_requests": 248, "per_minute": 12, "per_hour": 200, "per_day": 240, "min_interval": 0}
+  "minhareceita": {"max_requests": 66, "per_minute": 4, "per_hour": 40, "per_day": 60},
+  "websites": {"max_requests": 281, "per_minute": 12, "per_hour": 200, "per_day": 240, "min_interval": 0}
 }
 ```
 

@@ -73,8 +73,8 @@ Esse comando revoga as sessões anteriores. Não altera tokens comerciais nem co
 - SQLite local usa `BEGIN IMMEDIATE`; PostgreSQL usa lock da linha da organização com `SELECT FOR UPDATE`.
 - A chave de idempotência é única por organização. Repetição retorna a operação existente; mesma chave com outro CNPJ gera conflito.
 - A chave pendente é lembrada no navegador apenas para recuperação de operação. O saldo vem sempre do backend; não é mantido em localStorage/JavaScript.
-- CNPJ inválido, empresa ausente sem pesquisa autorizada e erro interno não consomem token. Resultado vazio concluído e nova consulta aos dados armazenados consomem um token.
-- Pesquisas enfileiradas reservam um token; o token só passa a consumido quando o resultado é confirmado. Falhas liberam a reserva. O saldo disponível é inicial menos consumidos menos reservados.
+- Regra de tokens (10/11/2026): cada pesquisa real concluída consome exatamente 1 token, com ou sem links. Reaproveitar um resultado já salvo (consulta ou item de lote), reabrir, recarregar e revalidar sites não consomem token. CNPJ inválido, empresa ausente sem pesquisa autorizada, pesquisa bloqueada e falha técnica também não.
+- Pesquisas enfileiradas reservam um token; o token só passa a consumido quando o resultado é confirmado. Falhas liberam a reserva. Se a pesquisa externa for desligada ou bloqueada com uma consulta pendente, ela é encerrada sem custo e a reserva volta. O saldo disponível é inicial menos consumidos menos reservados.
 - Cada usuário tem sua sessão, mas compartilha o saldo da organização. Há limitação persistente de vinte novas tentativas de consulta por minuto por organização.
 
 ## Motor existente e consultas externas

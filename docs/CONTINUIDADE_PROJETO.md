@@ -1,25 +1,32 @@
 # Busca CNPJs — continuidade do projeto
 
-Situação em **10/11/2026**. Este arquivo resume o que foi feito, o que está publicado e o que falta, para retomar sem refazer etapas. Nenhum segredo está aqui: credenciais ficam só nos arquivos privados citados.
+Situação em **11/11/2026**. Este arquivo resume o estado real do sistema, o que está publicado e o que falta, para retomar sem refazer etapas. Nenhum segredo está aqui: credenciais ficam só nos arquivos privados citados.
+
+Documentos relacionados:
+
+- [`HOMOLOGACAO_2026-11.md`](HOMOLOGACAO_2026-11.md): auditoria da revalidação, testes e prontidão.
+- [`DEMONSTRACAO.md`](DEMONSTRACAO.md): roteiro da apresentação com resultados salvos.
+- [`ATIVAR_PESQUISA_EXTERNA.md`](ATIVAR_PESQUISA_EXTERNA.md): ativação, bloqueio, auditoria e recuperação.
 
 ## 1. Resumo
 
-- A pesquisa real funciona de ponta a ponta (cadastro → busca Serper → validação de sites) e foi comprovada no piloto da WEG.
-- Produção está com a **pesquisa externa desligada**. A equipe ainda **não** foi liberada.
-- PR #8 (robots.txt RFC 9309, robô DazumCNPJ, painel do Google, usuário no cabeçalho, mensagens distintas) está em produção (`db54379`).
-- Em 10/11 o proprietário definiu a **regra final de tokens** (pesquisa real concluída = 1 token; resultado já salvo reaproveitado sem custo), pediu as categorias **site da matriz** e **indicado pelo painel do Google**, o saldo antes/depois e **autorizou a etapa 1a** com 5 CNPJs. Essas mudanças estão na branch `feat/finalizacao-operacional`.
-- Próximo marco: integrar essa branch, publicar com a pesquisa desligada e ativar a etapa 1a.
+- A plataforma está publicada em https://busca-cnpjs.vercel.app com login, saldo, consulta individual, lotes de até 15, histórico e exportação CSV/XLSX.
+- A **pesquisa externa está desligada** (flag `false` e política bloqueada no Neon). Com ela desligada, a equipe consulta e exporta os **25 resultados já salvos**, sem custo.
+- A pesquisa real já foi comprovada em produção:
+  - piloto WEG (09/11);
+  - etapa 1a com 5 CNPJs (10/11);
+  - revalidação só de sites desses 5 (10/11), com o resultado aprovado pelo proprietário.
+- A liberação operacional da equipe (etapa 1b em diante) depende de **nova autorização** e da conferência do Billing da Serper.
 
 ## 2. GitHub
 
 | Item | Valor |
 |---|---|
 | Repositório | https://github.com/DazumDigital/busca_cnpjs |
-| `main` | `b72a77b` — PR #9 (inclui PRs #5 a #8) |
-| Branch em andamento | `feat/qualidade-sites` (descoberta e classificação de sites após a etapa 1a) |
-| PR a abrir | https://github.com/DazumDigital/busca_cnpjs/pull/new/feat/qualidade-sites |
+| `main` | `65387b9` — PR #10 (descoberta e classificação de sites após a etapa 1a) |
+| Branch desta homologação | `fix/homologacao-producao` (correções de integridade, testes e documentação) |
 
-Histórico desta fase: `34ba433` (#5, validação de sites resiliente e comandos administrativos), `8e9955e` (#6, RFC 9309 e achados do piloto), `1a73e37` (#7, revalidação sem novo token, crawl-delay por site e lotes em rodízio), `1acad01`/`4961f9a` (#8, operação da equipe e documentação).
+Histórico: PRs #5 a #8 (validação resiliente, RFC 9309, robô DazumCNPJ, operação), #9 (regra final de tokens, site da matriz, painel do Google), #10 (qualidade da descoberta de sites).
 
 O push só funciona no **terminal interativo do proprietário** (Git Credential Manager). O `gh` não está instalado; PRs são abertos e integrados pela interface do GitHub.
 
@@ -27,74 +34,119 @@ O push só funciona no **terminal interativo do proprietário** (Git Credential 
 
 | Item | Valor |
 |---|---|
-| Projeto | `dazum-digital/busca-cnpjs` (Team ID `team_BzXgymmWBHc9JV86DWRhQJAk`, Project ID `prj_AaNc6gH2J5nhtFo5bbMMp5giYf7F`) |
-| Produção | `dpl_2nvc7HnnoPePtvcgQpBSbD5CuE51`, código `b72a77b` (PR #9), publicado em 10/11 11:32 BRT com a pesquisa desligada |
+| Projeto | `dazum-digital/busca-cnpjs` (Team ID `team_BzXgymmWBHc9JV86DWRhQJAk`, Project ID `prj_AaNc6gH2J5nhtFo5bbMMp5giYf7F`), plano **Hobby** |
+| Produção | `dpl_Dt1FFA1kiwZXUT3kCZyzcm9yvPDD`, código `65387b9`, publicado em 10/11 14:39 BRT com a pesquisa desligada |
+| Publicações de 10/11 | `dpl_9NeP7tPDyNnFGST4o2Wpkusak7BM` (14:06, flag false), `dpl_DydBZRWicDMAqdxKDZNfzgsZzqPs` (14:21, flag true só para a revalidação), `dpl_Dt1FFA1kiwZXUT3kCZyzcm9yvPDD` (14:39, flag false) |
 | `WEB_ENABLE_EXTERNAL` | `false` em Production (entrada própria, tipo Config); `false` em Preview (entrada separada) |
 | `SERPER_API_KEY` | Secret **só em Production** |
 | Deploy automático por push | Desligado (`vercel.json`: `git.deploymentEnabled=false`) |
+| Função | Python (FastAPI), `maxDuration` 30 s |
 
-Deploys são feitos pelo CLI a partir da `main` limpa (comando na seção 9). Depois de cada deploy, conferir `/api/health` = 200, `/api/lotes` sem sessão = 401 e os arquivos estáticos idênticos ao commit.
+Deploys são feitos pelo CLI a partir da `main` limpa (comandos na seção 10). Depois de cada deploy, conferir:
 
-## 4. Neon (leitura de 10/11, sessão somente leitura)
+- `/api/health` = 200 (conexão com o Neon);
+- `/api/lotes` e `/api/consultas` sem sessão = 401;
+- `/robo` = 200;
+- arquivos estáticos idênticos ao commit;
+- cabeçalhos de segurança presentes;
+- logs sem erros.
 
-- `dazumdigital`: **2.469 tokens livres**, 0 consumidos, 0 reservados; **20 empresas históricas** intactas; usuário `cristiano` ativo.
-- `qa-serper-weg` (piloto): 1 token, 1 consumido; 1 empresa (WEG); usuário `qa.piloto.weg` **desativado**.
-- `qa-publicacao-bb4031e695b5`: organização de QA anterior, 3 tokens consumidos, usuário desativado.
-- Livro técnico: Serper 1, Minha Receita 1, sites 8 (todas do piloto WEG). Última reserva: 09/11 18:43 UTC.
-- Política externa: **bloqueada** (`blocked: true`), ainda com o escopo do piloto (só `qa-serper-weg` e o CNPJ da WEG).
+Logs da CLI no Hobby: só a última hora, e trazem apenas a saída das funções (zero registros = nenhum erro registrado).
+
+## 4. Neon (leitura de 10/11 14:40 BRT, sessão somente leitura)
+
+**Organização `dazumdigital`:**
+- 2.469 tokens iniciais, **5 consumidos** (etapa 1a), 0 reservados, **2.464 livres**;
+- **25 empresas salvas**: 20 históricas e 5 da etapa 1a;
+- livro de tokens com 5 lançamentos, um por consulta, sem duplicidade;
+- consultas: 5 concluídas e 8 não concluídas. As não concluídas são itens de lote com a pesquisa desligada (`EMPRESA_NAO_PESQUISADA`), sem custo;
+- usuário `cristiano` ativo.
+
+**Organizações de QA:**
+- `qa-serper-weg`: 1 token, 1 consumido;
+- `qa-publicacao-bb4031e695b5`: 3 tokens, 3 consumidos;
+- os usuários das duas estão desativados.
+
+**Livro técnico (acumulado):** Serper 6, Minha Receita 6, sites 41.
+
+**Política externa:**
+- **bloqueada** (`blocked: true`);
+- escopo: só `dazumdigital` e os 5 CNPJs da etapa 1a;
+- tetos: Serper 6, Minha Receita 6 (iguais ao livro), sites 70;
+- confirmação da Serper registrada em 10/11 13:52 UTC, válida por 168 h (**até 17/11 10:52 BRT**).
 
 ## 5. Serper
 
-- Saldo **2.467** créditos, confirmado pelo proprietário no Billing após o piloto (2.468 → 2.467, exatamente a chamada registrada).
-- Na conferência de 09/11 16:24 UTC: sem cartão, sem pagamentos, recarga automática desmarcada e desabilitada.
-- A chave da Vercel é a mesma do `.env` da POC; a queda de 1 crédito confirmou que pertence a essa conta.
-- A confirmação registrada na política vale 24 h e **já venceu**. Antes de religar, o proprietário deve conferir o Billing de novo.
+- Saldo **2.467** confirmado pelo proprietário em 10/11, antes da etapa 1a: sem cartão, sem pagamentos, recarga automática desativada.
+- A etapa 1a fez 5 buscas; a revalidação não fez nenhuma. O saldo esperado agora é **2.462**. **Conferir no Billing** antes de qualquer nova ativação.
+- A chave da Vercel é a mesma do `.env` da POC (conferido no piloto pela queda de exatamente 1 crédito).
 
-## 6. Piloto WEG (84.429.695/0001-11)
+## 6. Etapas reais já executadas
 
-- Cadastro: WEG SA · WEG · Jaraguá do Sul/SC · Ativa. Busca: 10 links.
-- Validação: `www.weg.net` respondeu **HTTP 403** (proteção anti-robô para IPs de datacenter); `weg.gupy.io` tinha um robots.txt que o leitor antigo recusava (corrigido em `1acad01`); a página da IECEE é de outra empresa e deixou de aparecer como possível site.
-- Resultado salvo: sem site oficial confirmado; possíveis sites `www.weg.net` (HTTP 403) e `weg.gupy.io`; redes sociais LinkedIn e Instagram.
-- A revalidação de sites usou 5 acessos, sem Serper, sem cadastro e sem novo token.
+| Etapa | Data | Escopo | Chamadas | Tokens | Resultado |
+|---|---|---|---|---|---|
+| Piloto WEG | 09/11 | `qa-serper-weg`, 1 CNPJ | Serper 1 · cadastro 1 · sites 8 | 1 (QA) | Sem site oficial: `weg.net` responde 403 a robôs |
+| Etapa 1a | 10/11 | `dazumdigital`, 5 CNPJs | Serper 5 · cadastro 5 · sites 22 | 5 | Nenhum oficial confirmado; causas corrigidas no PR #10 |
+| Revalidação de sites | 10/11 14:24–14:34 | os mesmos 5 | Serper 0 · cadastro 0 · sites 11 | 0 | Apple e Melau Pet oficiais; Giassi site da matriz; Angeloni possíveis sites; FG Prime referências |
 
-## 6b. Etapa 1a (10/11/2026) — primeiro teste real da equipe
+Detalhes e a aprovação do proprietário estão em [`HOMOLOGACAO_2026-11.md`](HOMOLOGACAO_2026-11.md).
 
-- 5 CNPJs pesquisados pelo proprietário com a conta `cristiano` (Apple individual; Angeloni, Giassi, FG Prime e Melau Pet em lote): 5 concluídas, **5 tokens** (equipe 2.469 → **2.464**), sem duplicidade; Serper 5, Minha Receita 5, sites 22 (tetos 5/5/40). Logs sem erros. Encerrada com bloqueio no Neon e flag `false` (deploy `dpl_2nvc7HnnoPePtvcgQpBSbD5CuE51`).
-- Nenhum site oficial confirmado. Causas: CNPJ de outro estabelecimento da mesma raiz recusado (Apple); Waze/ABINEE/Pandapé tratados como candidatos; falha de conexão sem diagnóstico e domínio principal fora dos resultados (Angeloni); só diretórios na busca (FG Prime); busca com o artigo "A" e sem "CAETANO" (Melau Pet). Giassi (filial) corretamente como site da matriz.
-- Correções na branch `feat/qualidade-sites` (descoberta e classificação; ver guia de ativação). Validadas com os links reais guardados e fontes simuladas (`tests/test_web_qualidade_sites.py`); falta comprovação real.
+## 7. Regras definitivas
 
-## 7. Decisões técnicas
+**Tokens:**
+- 1 token por pesquisa real concluída;
+- resultado já salvo é reaproveitado sem custo, com aviso;
+- falhas, bloqueios, reabertura, recarga e revalidação nunca cobram;
+- o livro de tokens por consulta impede débito duplicado;
+- o saldo aparece antes e depois de cada pesquisa.
 
-1. **Falha de site não derruba a consulta**: até 3 sites candidatos e 8 acessos; sem confirmação, o status é `FALHA_VALIDACAO_SITE_OFICIAL` e o motivo aparece no candidato.
-2. **robots.txt pela RFC 9309**: lê 500 KiB de qualquer tipo de conteúdo; 4xx = sem regras; 5xx = encerra o site; guarda só as regras de `*` e `DazumCNPJ`.
-3. **Sem evasão**: User-Agent `DazumCNPJ/1.0 (+https://busca-cnpjs.vercel.app/robo)`, página pública `/robo`; 403/429/503 encerram o site.
-4. **Crawl-delay por site** (mínimo 10 s) e lotes em **rodízio**: um item em espera não trava os demais.
-5. **Painel do Google**: o site indicado é validado primeiro e marcado "Indicado pelo painel do Google", nunca oficial; só a URL é guardada.
-6. **Tokens** (regra final de 10/11, substitui a de 09/11): 1 token por pesquisa real concluída, com ou sem links; resultado já salvo reaproveitado sem custo e com aviso; falhas, bloqueios, reabertura e revalidação não cobram; o livro de tokens por consulta impede débito duplicado.
-11. **Site da matriz** para filiais e **grupo do painel do Google**, ambos sem confirmação automática; colunas novas no fim das exportações.
-12. **Lotes** dependem da página aberta (fila persistente no Neon, retomada sem perdas); processamento em segundo plano avaliado e pendente de decisão (ver guia de ativação).
-7. **Mensagens distintas**: `PESQUISA_NAO_LIBERADA` (403), `PESQUISA_SUSPENSA`, `INTEGRACAO_NAO_VERIFICADA`, `LIMITE_CONSULTAS` (429), `COTA_EXTERNA_ESGOTADA`; esperas longas mostram "limite do período".
-8. **Revalidação no lugar** (`revalidate-sites`): refaz só os sites com os links já obtidos e atualiza a mesma consulta.
-9. **Limite temporário 429** do cadastro/busca pausa a etapa (máx. 3 vezes) em vez de falhar.
-10. **Liberação gradual** aprovada (seção 8 e `docs/ATIVAR_PESQUISA_EXTERNA.md`).
+**Resultados** (aprovados em 10/11):
+- priorizar o site oficial confirmado;
+- sem confirmação, preservar possíveis sites, site da matriz (filial), indicação do painel do Google, redes sociais e referências de terceiros úteis;
+- diretório ou plataforma nunca vira site oficial ou possível site;
+- um link útil não é descartado só porque a titularidade não pôde ser comprovada.
+
+**Pesquisa pendente com a pesquisa externa indisponível** (desta homologação): a consulta é encerrada sem custo e a reserva volta. Um resultado salvo é entregue sem custo. O progresso pago fica guardado e uma nova consulta continua dele.
+
+**Falha transitória do cadastro** (Minha Receita, gratuito): uma nova consulta tenta de novo, no máximo uma vez por consulta e dentro das cotas. Falhas depois da busca paga continuam exigindo revisão (`retry-job`).
+
+**Lotes:**
+- persistentes no Neon;
+- avançam com a página aberta, em rodízio;
+- fechar a página pausa sem perder nada, e reabrir pelo histórico retoma;
+- **não há processamento em segundo plano**.
 
 ## 8. Pendências e próximos passos
 
-0. **Integrar `feat/qualidade-sites`** e publicar com a pesquisa desligada. Comprovar com uma **revalidação dos 5 CNPJs da etapa 1a** (`revalidate-sites`, só acessos a sites: sem Serper, sem cadastro e sem token), mediante autorização.
-1. ~~Integrar `feat/finalizacao-operacional`~~ (PR #9, em produção desde 10/11).
-2. **Etapa 1a — validação com 5 CNPJs** (autorizada em 10/11: 00.623.904/0001-73, 83.646.984/0001-00, 83.648.477/0016-91 [filial], 04.743.028/0001-70, 66.136.840/0001-94; até 5 Serper, 5 cadastros, 40 acessos a sites e 5 tokens; Serper confirmada em 10/11 com 2.467 créditos, sem cartão, sem pagamentos e sem recarga; validade de 7 dias):
-   - rascunho do manifesto em `%USERPROFILE%\.dazum-secrets\etapa1a-manifest.RASCUNHO.json`;
-   - aplicar o manifesto da etapa 1 com `allowed_organizations: ["dazumdigital"]` e `allowed_cnpjs` com os 5 CNPJs;
-   - ligar a flag só em Production e publicar;
-   - o proprietário pesquisa pela interface com a conta `cristiano`;
-   - auditar: dados e fontes no Neon, classificação dos links, tokens (sem duplicidade), histórico, exportações e estabilidade;
-   - bloquear de novo até a decisão da etapa 1b.
-3. **Etapa 1b — uso inicial**: mesmo manifesto sem `allowed_cnpjs` (30 buscas Serper; 2/min, 20/h, 30/dia).
-4. **Homologar um lote real** de até 15 empresas e então aplicar a **etapa 2** (teto aprovado: Serper 500 · 5/min · 60/h · 150/dia; Minha Receita 1.000 · 10/min · 120/h · 300/dia; sites 4.000 · 30/min · 600/h · 2.000/dia).
-5. **Rotina semanal**: com `balance_valid_hours: 168`, reconferir o Billing e rodar `configure-external` toda semana.
-6. Em aberto, sem prazo: CNPJ alfanumérico (a Minha Receita não documenta suporte); contato opcional na página `/robo`; sites grandes com proteção anti-robô continuarão como "possível site" com o motivo.
+1. **Integrar `fix/homologacao-producao`** e publicar com a pesquisa desligada. Verificar domínio, Neon e logs como na seção 3.
+2. **Contas individuais da equipe**. O proprietário cria uma por pessoa, com a senha pedida no terminal: `create-user nome.sobrenome --org dazumdigital`. Evita o limite de 5 logins por minuto por usuário e mantém o histórico de cada um.
+3. **Conferir o Billing da Serper** (esperado 2.462, sem cartão, sem recarga) e autorizar a **etapa 1b**:
+   - escopo `dazumdigital`, qualquer CNPJ;
+   - Serper +30 (2/min, 20/h, 30/dia), cadastro +60, sites +240;
+   - tetos acumulados com o livro: Serper 36, Minha Receita 66, sites 281.
+4. **Homologar um lote real** de até 15 CNPJs novos na etapa 1b e então aplicar a **etapa 2**: Serper 500 (5/min, 60/h, 150/dia), Minha Receita 1.000 (10/min, 120/h, 300/dia), sites 4.000 (30/min, 600/h, 2.000/dia).
+5. **Rotina semanal** com a pesquisa ligada: reconferir o Billing e rodar `configure-external` (a confirmação vale 168 h).
+6. **Plano da Vercel**: o Hobby é para uso pessoal e não comercial. O uso operacional pela empresa exige plano ou condição adequada (ex.: Pro, pago) ou outra hospedagem. É uma decisão do proprietário; nada foi contratado.
+7. Em aberto, sem prazo:
+   - processamento de lotes sem a aba aberta. Opções: Vercel Schedules a cada 15 min (sem custo, lento) ou plano Pro (pago); decisão do proprietário;
+   - CNPJ alfanumérico;
+   - páginas acima de 1 MB (ex.: `www.angeloni.com.br`) não são analisadas e ficam como possível site com o motivo.
 
-## 9. Comandos para retomar (PowerShell)
+## 9. Testes desta versão
+
+- Python: 436 testes, incluindo concorrência e transações em PostgreSQL local descartável.
+- Frontend: 17 testes.
+- Build: 17 assets.
+- Nenhum teste acessa a rede (fontes simuladas).
+
+Também foram feitos testes funcionais na interface local com fontes simuladas e com as 25 empresas salvas copiadas do Neon:
+- consulta reaproveitada sem custo;
+- pesquisa nova com 1 token;
+- lote de 15 resultados salvos concluído com 0 token;
+- exportações CSV e XLSX;
+- celular em 375 px, sem rolagem horizontal.
+
+## 10. Comandos para retomar (PowerShell)
 
 ```powershell
 Set-Location 'C:\Cristiano\busca_cnpjs\outputs\busca-cnpjs-git'
@@ -136,8 +188,8 @@ npx --yes vercel@65.12.1 inspect busca-cnpjs.vercel.app --scope dazum-digital
 
 Desligar a pesquisa imediatamente (banco), se necessário: `& $python -m app.web.manage --env-file $envfile block-external`.
 
-## 10. Cuidados neste ambiente
+## 11. Cuidados neste ambiente
 
-- **PowerShell 5.1** corrompe acentos ao regravar arquivos (`Get-Content`/`Set-Content`): edite com o editor ou Python e faça commits com `git commit -F arquivo`.
-- O **Avast** intercepta HTTPS nesta máquina: scripts Python locais que acessam sites devem usar o repositório de certificados do Windows (`ssl.create_default_context()`); isso não afeta a Vercel.
-- O teste de produção com senha é feito pelo proprietário na interface; credenciais nunca vão para o Git, logs ou chat.
+- **PowerShell 5.1** corrompe acentos ao regravar arquivos (`Get-Content`/`Set-Content`). Edite com o editor ou com Python e faça os commits com `git commit -F arquivo`.
+- O **Avast** intercepta HTTPS nesta máquina. Scripts Python locais que acessam sites devem usar o repositório de certificados do Windows (`ssl.create_default_context()`); isso não afeta a Vercel.
+- O teste de produção com senha é feito pelo proprietário na interface. Credenciais nunca vão para o Git, logs ou chat.

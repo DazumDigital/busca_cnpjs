@@ -44,7 +44,7 @@ test('falhas exibem a causa operacional sem ecoar códigos desconhecidos',()=>{
   assert.match(failureMessage('LIMITE_TEMPORARIO'),/temporariamente/);
   assert.match(failureMessage('ETAPA_INTERROMPIDA'),/não foi repetida/);
   for(const code of ['FALHA_TECNICA_PESQUISA','https://x.example/?key=1','__proto__','constructor',undefined]) {
-    assert.equal(failureMessage(code),'Falha técnica ao consultar as fontes externas. Nenhum token foi consumido.');
+    assert.equal(failureMessage(code),'Falha técnica ao consultar as fontes externas. Nenhum token foi consumido. Tente novamente mais tarde; se persistir, fale com o responsável.');
   }
   for(const code of ['CNPJ_NAO_ENCONTRADO','COTA_ESGOTADA','ACESSO_NEGADO','INTEGRACAO_NAO_VERIFICADA']) assert.match(failureMessage(code),/Nenhum token/);
 });

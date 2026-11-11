@@ -1,5 +1,8 @@
 import hmac
+import ipaddress
+import json
 import logging
+import os
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -59,6 +62,27 @@ class QueryBody(BaseModel):
 class BatchBody(BaseModel):
     model_config = ConfigDict(extra='forbid')
     cnpjs: str = Field(min_length=1, max_length=3500)
+
+
+def company_name(result):
+    """Nome exibido no histórico (fantasia ou razão social), só a partir do resultado salvo."""
+    try:
+        company = (json.loads(result) or {}).get('empresa') or {}
+        return str(company.get('nome_fantasia') or company.get('razao_social') or '')[:120]
+    except (TypeError, ValueError, AttributeError):
+        return ''
+
+
+def client_address(request):
+    # Na Vercel, x-forwarded-for traz o IP público do cliente e é sobrescrito pela
+    # plataforma para impedir falsificação (docs: Request headers). Fora dela,
+    # vale o endereço da conexão.
+    if os.getenv('VERCEL'):
+        try:
+            return str(ipaddress.ip_address(request.headers.get('x-forwarded-for', '').split(',')[0].strip()))
+        except ValueError:
+            pass
+    return request.client.host if request.client else 'unknown'
 
 
 def create_app(settings=None, store=None):
@@ -150,8 +174,7 @@ def create_app(settings=None, store=None):
     def login(body: LoginBody, request: Request):
         origin(request)
         db = database()
-        address = request.client.host if request.client else 'unknown'
-        db.throttle('login-ip:' + digest(address), 10)
+        db.throttle('login-ip:' + digest(client_address(request)), 10)
         db.throttle('login-user:' + digest(body.usuario.strip().lower()), 5)
         old = request.cookies.get('dazum_session')
         token, csrf = auth.login(db, body.usuario, body.senha, config.session_hours)
@@ -212,8 +235,8 @@ def create_app(settings=None, store=None):
         with database().engine.connect() as conn:
             rows = conn.execute(select(consultations).where(consultations.c.organization_id == user['organization_id'], consultations.c.user_id == user['id'],
                 ~consultations.c.id.in_(select(batch_items.c.consultation_id)))
-                .order_by(consultations.c.created_at.desc()).limit(10)).mappings().all()
-            return [dict(id=r['id'], cnpj=r['cnpj'], status=r['status'], criado_em=r['created_at']) for r in rows]
+                .order_by(consultations.c.created_at.desc()).limit(20)).mappings().all()
+            return [dict(id=r['id'], cnpj=r['cnpj'], status=r['status'], criado_em=r['created_at'], empresa=company_name(r['result'])) for r in rows]
 
     @app.get('/api/consultas/{identifier}')
     def query(identifier: str, request: Request):
@@ -242,7 +265,9 @@ def create_app(settings=None, store=None):
     @app.post('/api/consultas/{identifier}/processar')
     def process_individual(identifier: str, request: Request):
         user=identity(request,True)
-        if not config.external_enabled:raise WebError('INTEGRACAO_NAO_VERIFICADA',503)
+        if not config.external_enabled:
+            # Nunca deixa uma consulta presa na fila com token reservado.
+            return live.settle_without_external(database(),user,identifier)
         return live.process_consultation(database(),user,identifier,config.serper_key)
 
     @app.post('/api/lotes')

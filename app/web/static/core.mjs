@@ -34,7 +34,7 @@ export function safeLink(value) {
     return url.href;
   } catch { return ''; }
 }
-const TECHNICAL = 'Falha técnica ao consultar as fontes externas. Nenhum token foi consumido.';
+const TECHNICAL = 'Falha técnica ao consultar as fontes externas. Nenhum token foi consumido. Tente novamente mais tarde; se persistir, fale com o responsável.';
 const FAILURES = {
   EMPRESA_NAO_PESQUISADA:'Sem pesquisa armazenada e pesquisa externa indisponível; nenhum token consumido.',
   DADOS_ARMAZENADOS_INVALIDOS:'Dados armazenados inconsistentes; nenhum token consumido.', CANCELADA:'Encerrada; reserva liberada.',
