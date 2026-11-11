@@ -222,7 +222,8 @@ def test_hard_quota_releases_commercial_reservation(live_setup, monkeypatch, use
     identity = user(web)
     with store.transaction() as db:
         policy = json.loads(db.execute(select(external_control.c.policy)).scalar_one())
-        policy['serper']['confirmed_free_remaining'] = 1
+        # Saldo confirmado de 101 com 1 busca já feita: restam 100, a reserva mínima.
+        policy['serper']['confirmed_free_remaining'] = 101
         db.execute(insert(external_requests).values(id='used', provider='serper', started_at=time.time(),
             outcome='RESERVADA', operation='used'))
     live.configure(store, policy, key=KEY)
@@ -231,11 +232,11 @@ def test_hard_quota_releases_commercial_reservation(live_setup, monkeypatch, use
         original = live.process_consultation
         monkeypatch.setattr(live, 'process_consultation', lambda s,u,i,k: original(s,u,i,k,runner))
         result = batches.step_batch(store, identity, batch['id'], batch['itens'][0]['id'], True, KEY)
-        assert result['itens'][0]['erro'] == 'COTA_EXTERNA_ESGOTADA'
+        assert result['itens'][0]['erro'] == 'RESERVA_SERPER'
     else:
         query = store.consult(identity, NEW, uuid.uuid4().hex, True, True)
         result = live.process_consultation(store, identity, query['id'], KEY, runner)
-        assert result['erro'] == 'COTA_EXTERNA_ESGOTADA' and result['status'] == 'FALHOU'
+        assert result['erro'] == 'RESERVA_SERPER' and result['status'] == 'FALHOU'
     assert result['saldo']['consumidos'] == 0 and result['saldo']['reservados'] == 0
     with store.engine.connect() as db:
         assert db.execute(select(func.count()).select_from(external_requests)).scalar_one() == 1
@@ -270,7 +271,8 @@ def test_postgresql_locks_reserve_only_one_serper_call(policy):
     store = Store(url)
     store.initialize()
     caps = dict(policy, max_requests=100, min_interval=0)
-    live.configure(store, dict(serper=dict(caps, confirmed_free_remaining=1),
+    # 101 confirmados - reserva de 100 = exatamente 1 busca permitida.
+    live.configure(store, dict(serper=dict(caps, confirmed_free_remaining=101),
         minhareceita=caps, websites=caps, allowed_organizations=[ORG]), key=KEY)
     ids = [generated_cnpj(700000 + i) for i in range(4)]
     from app.web.auth import create_user

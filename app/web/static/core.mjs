@@ -41,6 +41,7 @@ const FAILURES = {
   CNPJ_NAO_ENCONTRADO:'Empresa não identificada na base cadastral pública disponível. Nenhum token foi consumido.',
   CADASTRO_DIVERGENTE:'A base cadastral devolveu dados divergentes para este CNPJ. Nenhum token foi consumido.',
   COTA_EXTERNA_ESGOTADA:'Limite de pesquisas externas atingido. Nenhuma chamada foi enviada e nenhum token foi consumido.',
+  RESERVA_SERPER:'Pesquisas novas pausadas para preservar a reserva mínima de 100 créditos da Serper. Nenhum token foi consumido.',
   COTA_ESGOTADA:'Pesquisa externa suspensa: o provedor de busca recusou novas chamadas. Nenhum token foi consumido.',
   ACESSO_NEGADO:'Pesquisa externa suspensa até revisão do responsável. Nenhum token foi consumido.',
   LIMITE_TEMPORARIO:'Fonte externa temporariamente limitada. Tente mais tarde. Nenhum token foi consumido.',
