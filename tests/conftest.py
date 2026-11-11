@@ -54,7 +54,7 @@ def policy():
                 no_card=True, no_auto_charge=True, no_paid_credits=True, storage_permitted=True,
                 batch_permitted=True, evidence="Mock: nenhuma conta real", max_requests=100,
                 per_minute=100, per_hour=100, per_day=100,
-                confirmed_free_remaining=100, balance_verified_at=now.isoformat())
+                confirmed_free_remaining=1000, balance_verified_at=now.isoformat())
 
 
 def generated_cnpj(number):

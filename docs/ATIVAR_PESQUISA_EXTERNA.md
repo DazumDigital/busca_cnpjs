@@ -134,6 +134,7 @@ O robô se identifica como `DazumCNPJ/1.0 (+https://busca-cnpjs.vercel.app/robo)
 | `INTEGRACAO_NAO_VERIFICADA` (503) | Sem política, chave diferente ou confirmação de saldo vencida | Aguarda configuração ou renovação da confirmação |
 | `LIMITE_CONSULTAS` (429) | Mais de 20 consultas ou lotes por minuto na organização | Limite de consultas por minuto; nada cobrado |
 | `COTA_EXTERNA_ESGOTADA` | Teto total aprovado atingido | Limite de pesquisas externas atingido |
+| `RESERVA_SERPER` (503) | A próxima busca deixaria menos de 100 créditos do saldo confirmado da Serper | Pesquisas novas pausadas para preservar a reserva mínima de 100 créditos |
 
 Esperas de 2 minutos ou mais (janelas por hora ou dia) aparecem como "Limite de pesquisas do período atingido", com o tempo estimado; o progresso fica salvo.
 
@@ -178,5 +179,7 @@ Nos sites, `min_interval: 0` evita uma fila global; o intervalo de pelo menos 10
   - **B (pago):** plano Pro, com cron por minuto. Exige aprovação financeira.
 
 ## Cotas e retomada
+
+**Reserva mínima da Serper (regra do proprietário, 11/11/2026):** o saldo nunca fica abaixo de 100 créditos. Uma busca só é reservada se, depois dela, ainda restarem 100 créditos do saldo confirmado (`confirmed_free_remaining` menos as buscas feitas desde `balance_verified_at`). Caso contrário, a pesquisa é recusada com `RESERVA_SERPER` antes até do cadastro, sem chamada e sem token. Ex.: saldo confirmado 2.462 → no máximo 2.362 buscas até a próxima conferência, além do teto da etapa.
 
 O PostgreSQL serializa a reserva das etapas externas. A cota total, o saldo confirmado e as janelas móveis de minuto, hora e dia incluem reservas incertas e chamadas que falharam. O bloqueio da Serper por falta de créditos ou acesso negado impede novas chamadas até revisão. Uma espera de limite temporário mantém o progresso salvo; cota da Serper ou do cadastro definitivamente esgotada encerra o item sem desconto comercial e a pesquisa retoma da mesma fase quando houver nova cota. Repetir a mesma operação ou etapa não duplica o desconto. Um lote aceita até 15 CNPJs distintos e progride por etapas; recarregar a página recupera o lote pelo histórico.

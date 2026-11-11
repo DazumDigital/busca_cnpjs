@@ -23,7 +23,7 @@ Documentos relacionados:
 | Item | Valor |
 |---|---|
 | Repositório | https://github.com/DazumDigital/busca_cnpjs |
-| `main` | `65387b9` — PR #10 (descoberta e classificação de sites após a etapa 1a) |
+| `main` | `cccc173` — PR #11 (homologação para produção); branch `fix/reserva-serper` com a reserva mínima de 100 créditos |
 | Branch desta homologação | `fix/homologacao-producao` (correções de integridade, testes e documentação) |
 
 Histórico: PRs #5 a #8 (validação resiliente, RFC 9309, robô DazumCNPJ, operação), #9 (regra final de tokens, site da matriz, painel do Google), #10 (qualidade da descoberta de sites).
@@ -35,9 +35,9 @@ O push só funciona no **terminal interativo do proprietário** (Git Credential 
 | Item | Valor |
 |---|---|
 | Projeto | `dazum-digital/busca-cnpjs` (Team ID `team_BzXgymmWBHc9JV86DWRhQJAk`, Project ID `prj_AaNc6gH2J5nhtFo5bbMMp5giYf7F`), plano **Hobby** |
-| Produção | `dpl_Dt1FFA1kiwZXUT3kCZyzcm9yvPDD`, código `65387b9`, publicado em 10/11 14:39 BRT com a pesquisa desligada |
+| Produção | `dpl_FqaYCVJ8XRBeuw2wExdQ3jhdv4Fc` (11/11 14:23 BRT, redeploy feito pelo proprietário de `dpl_D7Ay5uHawzEFu1GfjEdytKwPh24q`, código `cccc173`) |
 | Publicações de 10/11 | `dpl_9NeP7tPDyNnFGST4o2Wpkusak7BM` (14:06, flag false), `dpl_DydBZRWicDMAqdxKDZNfzgsZzqPs` (14:21, flag true só para a revalidação), `dpl_Dt1FFA1kiwZXUT3kCZyzcm9yvPDD` (14:39, flag false) |
-| `WEB_ENABLE_EXTERNAL` | `false` em Production (entrada própria, tipo Config); `false` em Preview (entrada separada) |
+| `WEB_ENABLE_EXTERNAL` | `true` em Production desde 11/11 (alterado pelo proprietário); `false` em Preview. A política do Neon segue bloqueada até a aprovação da etapa 1b |
 | `SERPER_API_KEY` | Secret **só em Production** |
 | Deploy automático por push | Desligado (`vercel.json`: `git.deploymentEnabled=false`) |
 | Função | Python (FastAPI), `maxDuration` 30 s |
@@ -105,6 +105,8 @@ Detalhes e a aprovação do proprietário estão em [`HOMOLOGACAO_2026-11.md`](H
 - sem confirmação, preservar possíveis sites, site da matriz (filial), indicação do painel do Google, redes sociais e referências de terceiros úteis;
 - diretório ou plataforma nunca vira site oficial ou possível site;
 - um link útil não é descartado só porque a titularidade não pôde ser comprovada.
+
+**Reserva da Serper:** o saldo nunca fica abaixo de 100 créditos. A busca só é reservada se, depois dela, restarem 100 créditos do saldo confirmado; senão, a pesquisa é recusada com mensagem clara, sem chamada e sem token (`RESERVA_SERPER`).
 
 **Pesquisa pendente com a pesquisa externa indisponível** (desta homologação): a consulta é encerrada sem custo e a reserva volta. Um resultado salvo é entregue sem custo. O progresso pago fica guardado e uma nova consulta continua dele.
 

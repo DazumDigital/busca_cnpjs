@@ -27,7 +27,9 @@ MAX_TEMPORARY_RETRIES = 3
 RETRYABLE_REGISTRY = frozenset({'ERRO_PROVEDOR', 'FALHA_TECNICA_PESQUISA', 'RESPOSTA_INVALIDA', 'LIMITE_TEMPORARIO'})
 # Recusas da política antes de qualquer chamada: a consulta é encerrada sem custo
 # e a reserva volta; o estado da pesquisa fica guardado para uma consulta futura.
-POLICY_REFUSALS = frozenset({'PESQUISA_SUSPENSA', 'INTEGRACAO_NAO_VERIFICADA', 'PESQUISA_NAO_LIBERADA', 'COTA_EXTERNA_ESGOTADA'})
+POLICY_REFUSALS = frozenset({'PESQUISA_SUSPENSA', 'INTEGRACAO_NAO_VERIFICADA', 'PESQUISA_NAO_LIBERADA', 'COTA_EXTERNA_ESGOTADA', 'RESERVA_SERPER'})
+# Regra do proprietário: o saldo da Serper nunca fica abaixo de 100 créditos.
+SERPER_RESERVE = 100
 
 
 def valid_policy(policy):
@@ -130,8 +132,12 @@ def quota_delay(conn, control, policy, provider, now):
         since = datetime.fromisoformat(p['balance_verified_at']).timestamp()
         counts.append(func.count(case((started_at >= since, 1))))
     total, latest, *balance_usage = conn.execute(select(*counts).where(external_requests.c.provider == provider)).one()
-    if total >= p['max_requests'] or (balance_usage and balance_usage[0] >= p['confirmed_free_remaining']):
+    if total >= p['max_requests']:
         raise WebError('COTA_EXTERNA_ESGOTADA', 503)
+    # Cada busca nova usa 1 crédito: só segue se, depois dela, ainda restarem
+    # pelo menos SERPER_RESERVE créditos do saldo confirmado.
+    if balance_usage and balance_usage[0] >= p['confirmed_free_remaining'] - SERPER_RESERVE:
+        raise WebError('RESERVA_SERPER', 503)
     wait = max(0, control['lease_until'] - now, policy.get('not_before', {}).get(provider, 0) - now)
     for limit, seconds in WINDOWS:
         boundary = conn.execute(request_times.where(started_at > now - seconds)

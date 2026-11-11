@@ -44,6 +44,7 @@ MESSAGES = {
     'PESQUISA_NAO_LIBERADA': 'Sua conta não está liberada para pesquisas externas deste CNPJ. Fale com o responsável. Nenhum token foi consumido.',
     'LIMITE_CONSULTAS': 'Limite de consultas por minuto atingido. Aguarde um minuto e tente novamente; nada foi cobrado.',
     'COTA_EXTERNA_ESGOTADA': 'O limite de pesquisas externas aprovado foi atingido. Nenhuma nova chamada foi enviada e nenhum token foi consumido.',
+    'RESERVA_SERPER': 'Pesquisas novas pausadas para preservar a reserva mínima de 100 créditos da Serper. Nenhuma chamada foi enviada e nenhum token foi consumido. Fale com o responsável.',
 }
 
 
