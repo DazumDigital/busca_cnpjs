@@ -22,6 +22,12 @@ from app.web.live_sources import execute_action, action_for, payload_for, stop_w
 PROVIDERS = ('serper', 'minhareceita', 'websites')
 WINDOWS = (('per_minute', 60), ('per_hour', 3600), ('per_day', 86400))
 MAX_TEMPORARY_RETRIES = 3
+# Falhas transitórias do cadastro (Minha Receita, gratuito): antes de qualquer
+# busca paga, uma nova consulta pode tentar de novo sem revisão manual.
+RETRYABLE_REGISTRY = frozenset({'ERRO_PROVEDOR', 'FALHA_TECNICA_PESQUISA', 'RESPOSTA_INVALIDA', 'LIMITE_TEMPORARIO'})
+# Recusas da política antes de qualquer chamada: a consulta é encerrada sem custo
+# e a reserva volta; o estado da pesquisa fica guardado para uma consulta futura.
+POLICY_REFUSALS = frozenset({'PESQUISA_SUSPENSA', 'INTEGRACAO_NAO_VERIFICADA', 'PESQUISA_NAO_LIBERADA', 'COTA_EXTERNA_ESGOTADA'})
 
 
 def valid_policy(policy):
@@ -159,6 +165,13 @@ def advance_job(store,cnpj,key,clock=time.time,executor=execute_action,*,organiz
                 step=0,lease_until=0,updated_at=now))
             job=dict(cnpj=cnpj,id=identifier,status='READY',state=json.dumps(state),step=0,lease_until=0,result=None,error=None)
         state=json.loads(job['state'])
+        if job['status']=='FAILED' and state.get('phase')=='CADASTRO' and job['error'] in RETRYABLE_REGISTRY:
+            # A consulta que falhou já foi encerrada; esta é outra consulta. Cada
+            # consulta nova faz no máximo uma tentativa, sempre dentro das cotas.
+            state.pop('temporary_retries',None)
+            job=dict(job,status='READY',error=None,step=job['step']+1)
+            conn.execute(update(live_jobs).where(live_jobs.c.cnpj==cnpj).values(status='READY',error=None,
+                step=job['step'],state=json.dumps(state,ensure_ascii=False),updated_at=now))
         if job['status'] in {'DONE','FAILED','UNCERTAIN'}:
             return dict(status=job['status'],result=json.loads(job['result']) if job['result'] else None,error=job['error'])
         if job['status']=='IN_FLIGHT':
@@ -345,6 +358,36 @@ def revalidate_consultation(store,user,row,key,runner):
     return data
 
 
+def settle_without_external(store,user,identifier):
+    """Pesquisa externa desligada no ambiente: a consulta pendente é concluída com
+    o resultado salvo (sem custo) ou encerrada sem custo, com a reserva devolvida.
+    Nenhuma chamada externa; o estado da pesquisa fica guardado para depois."""
+    failed=False
+    with store.transaction() as conn:
+        store.lock_org(conn,user['organization_id'])
+        row=conn.execute(select(consultations).where(consultations.c.id==identifier,
+            consultations.c.organization_id==user['organization_id'],consultations.c.user_id==user['id'])).mappings().first()
+        if not row:raise WebError('NAO_ENCONTRADO',404)
+        if row['status'] in {'PENDENTE_LOTE','NA_FILA','EM_PROCESSAMENTO'}:
+            saved=store.saved_payload(conn,user['organization_id'],row['cnpj'])
+            try:
+                payload=json.loads(saved) if saved else None
+                if payload and payload.get('empresa',{}).get('cnpj')!=row['cnpj']:payload=None
+            except (TypeError,ValueError,AttributeError):
+                payload=None
+            if payload:
+                payload['origem_resultado']='HISTORICO'
+                store.complete(conn,row,payload,reserved=True,charge=False)
+            else:
+                failed=True
+                conn.execute(update(organizations).where(organizations.c.id==user['organization_id']).values(reserved=organizations.c.reserved-1))
+                conn.execute(update(consultations).where(consultations.c.id==identifier).values(status='FALHOU',finished_at=time.time()))
+                conn.execute(update(batch_items).where(batch_items.c.consultation_id==identifier).values(error_code='EMPRESA_NAO_PESQUISADA'))
+    data=store.consultation(user['organization_id'],identifier)
+    if failed:data['erro']='EMPRESA_NAO_PESQUISADA'
+    return data
+
+
 def process_consultation(store,user,identifier,key,runner=advance_job):
     with store.engine.connect() as conn:
         row=conn.execute(select(consultations).where(consultations.c.id==identifier,
@@ -374,8 +417,10 @@ def process_consultation(store,user,identifier,key,runner=advance_job):
     try:
         outcome=runner(store,row['cnpj'],key,organization=user['organization_id'])
     except WebError as exc:
-        if exc.code != 'COTA_EXTERNA_ESGOTADA':
+        if exc.code not in POLICY_REFUSALS:
             raise
+        # Sem isso a consulta ficaria na fila com o token reservado até alguém
+        # religar a pesquisa externa.
         outcome=dict(status='FAILED',error=exc.code)
     with store.transaction() as conn:
         store.lock_org(conn,user['organization_id'])

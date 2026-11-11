@@ -65,6 +65,17 @@ def csv_cell(value, cnpj=False):
     return value
 
 
+XLSX_MAX = 32000  # o Excel aceita até 32.767 caracteres por célula
+
+
+def xlsx_cell(value):
+    # Trechos de páginas podem trazer caracteres de controle que o formato XLSX
+    # proíbe (openpyxl recusaria a planilha inteira) ou textos longos demais.
+    from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+    value = ILLEGAL_CHARACTERS_RE.sub('', text(value))
+    return value if len(value) <= XLSX_MAX else value[:XLSX_MAX - 1] + '…'
+
+
 def export(items, format):
     values, links = rows(items)
     if format == 'csv':
@@ -80,11 +91,11 @@ def export(items, format):
     sheet.title = 'Empresas'
     sheet.append(COLUMNS)
     for row in values:
-        sheet.append(row)
+        sheet.append([xlsx_cell(v) for v in row])
     detail = book.create_sheet('Links')
     detail.append(['CNPJ', 'Categoria', 'URL', 'Tipo de fonte', 'Confiança', 'Evidências e ressalvas'])
     for row in links:
-        detail.append(row)
+        detail.append([xlsx_cell(v) for v in row])
     from openpyxl.styles import Font, PatternFill, Alignment
     from openpyxl.utils import get_column_letter
     for table in book:

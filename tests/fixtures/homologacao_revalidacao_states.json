@@ -1,0 +1,497 @@
+{
+ "00623904000173": {
+  "added_sites": [],
+  "candidates": [
+   "https://www.apple.com/br/",
+   "https://www.apple.com/br-edu/shop/help/online_store_exclusives",
+   "https://www.apple.com/br/mac/",
+   "https://www.apple.com/br/iphone/",
+   "https://www.waze.com/live-map/directions/br/sp/apple-computer-brasil?to=place.ChIJK83MQ2lXzpQR_RgcofImWPs",
+   "https://www.abinee.org.br/associada/cod/3044/",
+   "https://www.instagram.com/explore/locations/1036361499759100/apple-computer-brasil-ltda/recent/",
+   "https://app.hunterhero.io/ats/site/espro/jobs/10522",
+   "https://www.apple.com/br/newsroom/",
+   "https://rapidlei.com/lei-record/549300UJWEUFNYXPJ620"
+  ],
+  "company": {
+   "city": "SAO PAULO",
+   "cnpj": "00623904000173",
+   "legal_name": "APPLE COMPUTER BRASIL LTDA",
+   "main_cnae": "",
+   "registration_status": "ATIVA",
+   "state": "SP",
+   "trade_name": ""
+  },
+  "crawl_delay": 10,
+  "created_at": 1794319152.8158536,
+  "current_site": "https://www.apple.com/br/",
+  "google_panel_site": null,
+  "guessed_sites": [],
+  "phase": "DONE",
+  "queue": [],
+  "redirects": [],
+  "revalidation": true,
+  "searched_at": "2026-11-10T13:59:26.127193+00:00",
+  "site_failures": [],
+  "site_results": [
+   {
+    "accessible": true,
+    "confidence": "ALTA",
+    "confirmed": true,
+    "domain": "apple.com",
+    "evidence": [
+     "Página acessível; menção de nome/CNPJ não comprova propriedade",
+     "exact_cnpj",
+     "name_match",
+     "brand_domain",
+     "heading_brand",
+     "legal_owner",
+     "CNPJ de outro estabelecimento da mesma empresa (00.623.904/0003-35)"
+    ],
+    "inspected_urls": [
+     "https://www.apple.com/br/"
+    ],
+    "page_evidence": [
+     {
+      "cnpjs": [
+       "00623904000335"
+      ],
+      "content_sha256": "d1e4c37bec645c2ed510806bb0657aa91ff6ae4c4b733c986d3c728fe3661e6d",
+      "exact_cnpj": true,
+      "owner_context": "\t\t Os Serviços de Mídia da Apple são fornecidos pela Apple Services LATAM LLC. \n\t \n\t \n\t\t \n\t\t\t Brasil \n\t\t \n\t\t \n\t\t\t Copyright ©\n\t\t\t\t\n\t\t\t\t2026\n\t\t\t\t Apple Inc. Todos os direitos reservados. Apple Computer Brasil Ltda. CNPJ: 00.623.904/0003-35\n\t\t\t \n\t\t\t \n\t\t\t\t \n\t\t\t\t\t Política de Privacidade \n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t Política de vendas \n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t Avisos legais \n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t Mapa do site \n\t\t\t\t \n\t\t\t \n\t\t \n\t\t \n\t\t\t Brasil \n\t\t \n\t \n \n\n     \n\n \n\n \n\n\n\n       \n    ",
+      "owner_context_kind": "FOOTER",
+      "redirect_chain": [],
+      "reviewed_at_utc": "2026-11-10T17:24:22.692361+00:00",
+      "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+      "title": "Apple (Brasil) Apple",
+      "url": "https://www.apple.com/br/"
+     }
+    ],
+    "rules_version": "official-sites-v2:validation8:2882676d0782",
+    "score": 100,
+    "signals": {
+     "brand_domain": true,
+     "corporate_navigation": false,
+     "exact_cnpj": true,
+     "heading_brand": true,
+     "legal_owner": true,
+     "mesma_raiz": "00623904000335",
+     "name_match": true,
+     "tenant_evidence_paths": [],
+     "tenant_identity_confirmed": false
+    },
+    "site_type": "CORPORATE",
+    "website": "https://www.apple.com/br/"
+   }
+  ],
+  "site_validation": null,
+  "sites": [],
+  "validation": {
+   "accessible": true,
+   "confidence": "ALTA",
+   "confirmed": true,
+   "domain": "apple.com",
+   "evidence": [
+    "Página acessível; menção de nome/CNPJ não comprova propriedade",
+    "exact_cnpj",
+    "name_match",
+    "brand_domain",
+    "heading_brand",
+    "legal_owner",
+    "CNPJ de outro estabelecimento da mesma empresa (00.623.904/0003-35)"
+   ],
+   "inspected_urls": [
+    "https://www.apple.com/br/"
+   ],
+   "page_evidence": [
+    {
+     "cnpjs": [
+      "00623904000335"
+     ],
+     "content_sha256": "d1e4c37bec645c2ed510806bb0657aa91ff6ae4c4b733c986d3c728fe3661e6d",
+     "exact_cnpj": true,
+     "owner_context": "\t\t Os Serviços de Mídia da Apple são fornecidos pela Apple Services LATAM LLC. \n\t \n\t \n\t\t \n\t\t\t Brasil \n\t\t \n\t\t \n\t\t\t Copyright ©\n\t\t\t\t\n\t\t\t\t2026\n\t\t\t\t Apple Inc. Todos os direitos reservados. Apple Computer Brasil Ltda. CNPJ: 00.623.904/0003-35\n\t\t\t \n\t\t\t \n\t\t\t\t \n\t\t\t\t\t Política de Privacidade \n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t Política de vendas \n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t Avisos legais \n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t Mapa do site \n\t\t\t\t \n\t\t\t \n\t\t \n\t\t \n\t\t\t Brasil \n\t\t \n\t \n \n\n     \n\n \n\n \n\n\n\n       \n    ",
+     "owner_context_kind": "FOOTER",
+     "redirect_chain": [],
+     "reviewed_at_utc": "2026-11-10T17:24:22.692361+00:00",
+     "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+     "title": "Apple (Brasil) Apple",
+     "url": "https://www.apple.com/br/"
+    }
+   ],
+   "rules_version": "official-sites-v2:validation8:2882676d0782",
+   "score": 100,
+   "signals": {
+    "brand_domain": true,
+    "corporate_navigation": false,
+    "exact_cnpj": true,
+    "heading_brand": true,
+    "legal_owner": true,
+    "mesma_raiz": "00623904000335",
+    "name_match": true,
+    "tenant_evidence_paths": [],
+    "tenant_identity_confirmed": false
+   },
+   "site_type": "CORPORATE",
+   "website": "https://www.apple.com/br/"
+  },
+  "validations": [],
+  "web_calls": 2
+ },
+ "04743028000170": {
+  "candidates": [
+   "https://www.jusbrasil.com.br/nome/fg-prime-empreendimentos-ltda/cnpj-Cfv84chUC22",
+   "https://www.econodata.com.br/consulta-empresa/04743028000170-fg-prime-empreendimentos-ltda",
+   "https://advdinamico.com.br/socios/fg-prime-empreendimentos-ltda-e0dbe8ce",
+   "https://srwatson.io/empresa/fg-prime-empreendimentos-ltda-04743028000170",
+   "https://buscasim.com.br/cnpj/04743028000170-FG-PRIME-EMPREENDIMENTOS-LTDA",
+   "https://www.escavador.com/nomes/fg-empreendimentos-0478e9037f",
+   "https://atlaspublico.com.br/empresa/04743028000170",
+   "https://cnpj.biz/04743028000250",
+   "https://leis.org/0vueg"
+  ],
+  "company": {
+   "city": "BALNEARIO CAMBORIU",
+   "cnpj": "04743028000170",
+   "legal_name": "FG PRIME EMPREENDIMENTOS LTDA",
+   "main_cnae": "",
+   "registration_status": "ATIVA",
+   "state": "SC",
+   "trade_name": ""
+  },
+  "crawl_delay": 10,
+  "created_at": 1794319788.1878266,
+  "current_site": "https://leis.org/0vueg",
+  "google_panel_site": null,
+  "phase": "DONE",
+  "queue": [],
+  "redirects": [],
+  "searched_at": "2026-11-10T14:10:02.534445+00:00",
+  "site_failures": [
+   {
+    "error": "SITE_INACESSIVEL",
+    "http_status": 403,
+    "url": "https://leis.org/0vueg"
+   }
+  ],
+  "site_results": [],
+  "site_validation": null,
+  "sites": [],
+  "validation": {
+   "accessible": false,
+   "confidence": "NAO_ENCONTRADO",
+   "confirmed": false,
+   "domain": "",
+   "evidence": [
+    "SEM_SITE_OFICIAL_CONFIRMADO",
+    "SITE_INACESSIVEL"
+   ],
+   "inspected_urls": [],
+   "page_evidence": [],
+   "rules_version": "official-sites-v2:validation8:2882676d0782",
+   "score": 0,
+   "signals": {
+    "technical_errors": [
+     "SITE_INACESSIVEL"
+    ]
+   },
+   "site_type": "UNKNOWN",
+   "website": ""
+  },
+  "validations": [],
+  "web_calls": 2
+ },
+ "66136840000194": {
+  "added_sites": [
+   "https://www.melaupetcaetano.com.br/"
+  ],
+  "candidates": [
+   "https://www.econodata.com.br/consulta-empresa/66136840000194-a-melau-pet-caetano-ltda",
+   "https://www.instagram.com/p/DfCwXsisJxF/",
+   "https://www.instagram.com/reel/DdWV9TrN6MI/",
+   "https://www.core-sp.org.br/balcao-de-oportunidades?page=13",
+   "https://www.facebook.com/aliraempreendimentos/",
+   "https://www.solutudo.com.br/empresas/sc/joinville/astrologia/socha-cia-ltda-27494838",
+   "https://www.instagram.com/reel/DdcGyddRbbN/"
+  ],
+  "company": {
+   "city": "JOINVILLE",
+   "cnpj": "66136840000194",
+   "legal_name": "A MELAU PET CAETANO LTDA",
+   "main_cnae": "",
+   "registration_status": "ATIVA",
+   "state": "SC",
+   "trade_name": "A MELAU PET"
+  },
+  "crawl_delay": 10,
+  "created_at": 1794319832.8931558,
+  "current_site": "https://www.melaupetcaetano.com.br/",
+  "google_panel_site": null,
+  "guessed_sites": [
+   "https://www.melaupetcaetano.com.br/"
+  ],
+  "phase": "DONE",
+  "queue": [],
+  "redirects": [],
+  "revalidation": true,
+  "searched_at": "2026-11-10T14:10:59.691744+00:00",
+  "site_failures": [],
+  "site_results": [
+   {
+    "accessible": true,
+    "confidence": "ALTA",
+    "confirmed": true,
+    "domain": "melaupetcaetano.com.br",
+    "evidence": [
+     "Página acessível; menção de nome/CNPJ não comprova propriedade",
+     "exact_cnpj",
+     "name_match",
+     "brand_domain",
+     "heading_brand",
+     "legal_owner",
+     "corporate_navigation"
+    ],
+    "inspected_urls": [
+     "https://www.melaupetcaetano.com.br/"
+    ],
+    "page_evidence": [
+     {
+      "cnpjs": [
+       "66136840000194"
+      ],
+      "content_sha256": "f55feb4109bf050cb616fe88bb60e2e97a45c8c134f6e402161ceb7879373e95",
+      "exact_cnpj": true,
+      "owner_context": "\t\t \n\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t \n\n\t\t\t\t\n\t\t\t\n\t\t \n\n\t\t\n\t\t\t\t\n\t\t\n\n\n\n                                                             \n            \n\n\t \n\t \n\t\t \n\t\t\t \n\t\t\t\t \n\t\t\t\t\t \n\t\t\t\t\t   Copyright Melau Pet Caetano - 66136840000194 - 2026. Todos os direitos reservados.\n\t\t\t\t\t \n\t\t\t\t\t\n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t \n                     \n                 \n\t\t\t\t \n\t\t\t \n\t\t \n\t \n",
+      "owner_context_kind": "FOOTER",
+      "redirect_chain": [],
+      "reviewed_at_utc": "2026-11-10T17:33:55.697414+00:00",
+      "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+      "title": "Melau Pet Caetano Melau Pet Caetano",
+      "url": "https://www.melaupetcaetano.com.br/"
+     }
+    ],
+    "rules_version": "official-sites-v2:validation8:2882676d0782",
+    "score": 100,
+    "signals": {
+     "brand_domain": true,
+     "corporate_navigation": true,
+     "exact_cnpj": true,
+     "heading_brand": true,
+     "legal_owner": true,
+     "name_match": true,
+     "tenant_evidence_paths": [],
+     "tenant_identity_confirmed": false
+    },
+    "site_type": "CORPORATE",
+    "website": "https://www.melaupetcaetano.com.br/"
+   }
+  ],
+  "site_validation": null,
+  "sites": [],
+  "validation": {
+   "accessible": true,
+   "confidence": "ALTA",
+   "confirmed": true,
+   "domain": "melaupetcaetano.com.br",
+   "evidence": [
+    "Página acessível; menção de nome/CNPJ não comprova propriedade",
+    "exact_cnpj",
+    "name_match",
+    "brand_domain",
+    "heading_brand",
+    "legal_owner",
+    "corporate_navigation"
+   ],
+   "inspected_urls": [
+    "https://www.melaupetcaetano.com.br/"
+   ],
+   "page_evidence": [
+    {
+     "cnpjs": [
+      "66136840000194"
+     ],
+     "content_sha256": "f55feb4109bf050cb616fe88bb60e2e97a45c8c134f6e402161ceb7879373e95",
+     "exact_cnpj": true,
+     "owner_context": "\t\t \n\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t \n\t\t\t\t \n\n\t\t\t\t\n\t\t\t\n\t\t \n\n\t\t\n\t\t\t\t\n\t\t\n\n\n\n                                                             \n            \n\n\t \n\t \n\t\t \n\t\t\t \n\t\t\t\t \n\t\t\t\t\t \n\t\t\t\t\t   Copyright Melau Pet Caetano - 66136840000194 - 2026. Todos os direitos reservados.\n\t\t\t\t\t \n\t\t\t\t\t\n\t\t\t\t \n\t\t\t\t \n\t\t\t\t\t\t\t\t\t\t \n                     \n                 \n\t\t\t\t \n\t\t\t \n\t\t \n\t \n",
+     "owner_context_kind": "FOOTER",
+     "redirect_chain": [],
+     "reviewed_at_utc": "2026-11-10T17:33:55.697414+00:00",
+     "source": "PUBLIC_PAGE_DERIVED_EVIDENCE",
+     "title": "Melau Pet Caetano Melau Pet Caetano",
+     "url": "https://www.melaupetcaetano.com.br/"
+    }
+   ],
+   "rules_version": "official-sites-v2:validation8:2882676d0782",
+   "score": 100,
+   "signals": {
+    "brand_domain": true,
+    "corporate_navigation": true,
+    "exact_cnpj": true,
+    "heading_brand": true,
+    "legal_owner": true,
+    "name_match": true,
+    "tenant_evidence_paths": [],
+    "tenant_identity_confirmed": false
+   },
+   "site_type": "CORPORATE",
+   "website": "https://www.melaupetcaetano.com.br/"
+  },
+  "validations": [],
+  "web_calls": 2
+ },
+ "83646984000100": {
+  "added_sites": [
+   "https://www.angeloni.com.br/"
+  ],
+  "candidates": [
+   "https://supermercadosangeloni.pandape.com.br/",
+   "https://www.instagram.com/p/DYpJkTxllnq/",
+   "https://www.instagram.com/reel/DSpoR55ETG8/",
+   "https://institucional.angeloni.com.br/unidades/",
+   "https://www.instagram.com/reel/DPQ6xl4kWwD/",
+   "https://pt.wikipedia.org/wiki/Grupo_Angeloni",
+   "https://br.indeed.com/q-angeloni-supermercado-l-crici%C3%BAma,-sc-vagas.html",
+   "https://www.tiendeo.com.br/Lojas/criciuma/angeloni",
+   "https://www.redalyc.org/pdf/3312/331227341004.pdf",
+   "https://www.nsctotal.com.br/cotidiano/a-empresa-que-surgiu-de-uma-pequena-fiambreria-e-se-tornou-imperio-de-supermercados-de-sc"
+  ],
+  "company": {
+   "city": "CRICIUMA",
+   "cnpj": "83646984000100",
+   "legal_name": "A. ANGELONI & CIA. LTDA",
+   "main_cnae": "",
+   "registration_status": "ATIVA",
+   "state": "SC",
+   "trade_name": "SUPERMERCADOS ANGELONI"
+  },
+  "crawl_delay": 10,
+  "created_at": 1794319577.2042086,
+  "current_site": "https://www.angeloni.com.br/",
+  "google_panel_site": null,
+  "guessed_sites": [],
+  "phase": "DONE",
+  "queue": [],
+  "redirects": [],
+  "revalidation": true,
+  "searched_at": "2026-11-10T14:06:31.378145+00:00",
+  "site_failures": [
+   {
+    "conexao": "CONEXAO_ENCERRADA",
+    "error": "SITE_INACESSIVEL",
+    "url": "https://institucional.angeloni.com.br/unidades/"
+   },
+   {
+    "error": "CONTEUDO_MUITO_GRANDE",
+    "url": "https://www.angeloni.com.br/"
+   }
+  ],
+  "site_results": [],
+  "site_validation": null,
+  "sites": [],
+  "validation": {
+   "accessible": false,
+   "confidence": "PENDENTE",
+   "confirmed": false,
+   "domain": "",
+   "evidence": [
+    "Falha técnica ao validar candidato; vínculo não avaliado",
+    "SITE_INACESSIVEL",
+    "CONTEUDO_MUITO_GRANDE"
+   ],
+   "inspected_urls": [],
+   "page_evidence": [],
+   "rules_version": "official-sites-v2:validation8:2882676d0782",
+   "score": 0,
+   "signals": {
+    "candidate_url": "https://institucional.angeloni.com.br/unidades/",
+    "technical_errors": [
+     "SITE_INACESSIVEL",
+     "CONTEUDO_MUITO_GRANDE"
+    ]
+   },
+   "site_type": "VALIDATION_ERROR",
+   "website": ""
+  },
+  "validations": [],
+  "web_calls": 4
+ },
+ "83648477001691": {
+  "added_sites": [
+   "https://www.giassi.com.br/"
+  ],
+  "candidates": [
+   "https://maps.apple.com/place?place-id=I748C078252930C37",
+   "https://www.tiktok.com/@elliot23e/video/7521791336903707909",
+   "https://redeciadasaude.com.br/loja/cia-da-saude-giassi-bucarein-sc/",
+   "https://institucional.giassi.com.br/noticias/page:56",
+   "https://portaldatransparencia.gov.br/cartoes/cpgf/pessoa-juridica/83648477001691",
+   "https://www.yelp.com/search?find_desc=Grocery&find_loc=Joinville+-+SC",
+   "https://www.facebook.com/giassisupermercados/posts/no-giassi-voc%C3%AA-encontra-as-suas-marcas-preferidas-sempre-com-%C3%B3timas-ofertas-apro/1529525015882347/",
+   "https://www.instagram.com/reel/DXHaFzbCh04/",
+   "https://www.youtube.com/watch?v=Br9dA4LnQrU",
+   "https://ve.indeed.com/cmp/Giassi-Supermercado/reviews?fcountry=BR&ftopic=paybenefits"
+  ],
+  "company": {
+   "city": "JOINVILLE",
+   "cnpj": "83648477001691",
+   "legal_name": "GIASSI & CIA LTDA",
+   "main_cnae": "",
+   "registration_status": "ATIVA",
+   "state": "SC",
+   "trade_name": "GIASSI SUPERMERCADO"
+  },
+  "crawl_delay": 10,
+  "created_at": 1794319632.9053829,
+  "current_site": "https://institucional.giassi.com.br/noticias/page:56",
+  "google_panel_site": null,
+  "guessed_sites": [],
+  "phase": "DONE",
+  "queue": [],
+  "redirects": [],
+  "revalidation": true,
+  "searched_at": "2026-11-10T14:07:58.698598+00:00",
+  "site_failures": [],
+  "site_results": [
+   {
+    "accessible": true,
+    "confidence": "MEDIA",
+    "confirmed": false,
+    "domain": "institucional.giassi.com.br",
+    "evidence": [
+     "CNPJ da matriz na página; a filial consultada não aparece"
+    ],
+    "inspected_urls": [],
+    "page_evidence": [],
+    "rules_version": "official-sites-v2:validation8:2882676d0782",
+    "score": 50,
+    "signals": {
+     "matriz_cnpj": "83648477000105"
+    },
+    "site_type": "MATRIZ_SITE",
+    "website": "https://institucional.giassi.com.br/noticias/page:56"
+   }
+  ],
+  "site_validation": null,
+  "sites": [],
+  "validation": {
+   "accessible": true,
+   "confidence": "MEDIA",
+   "confirmed": false,
+   "domain": "institucional.giassi.com.br",
+   "evidence": [
+    "CNPJ da matriz na página; a filial consultada não aparece"
+   ],
+   "inspected_urls": [],
+   "page_evidence": [],
+   "rules_version": "official-sites-v2:validation8:2882676d0782",
+   "score": 50,
+   "signals": {
+    "matriz_cnpj": "83648477000105"
+   },
+   "site_type": "MATRIZ_SITE",
+   "website": "https://institucional.giassi.com.br/noticias/page:56"
+  },
+  "validations": [],
+  "web_calls": 3
+ }
+}
